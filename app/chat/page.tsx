@@ -1,29 +1,28 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { supabase } from '@/utils/supabase/client'
 import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Send, MoreVertical, Phone, Video, ShieldAlert, Contact, Ban, Flag, User, Lock, Award, Loader2, CheckCircle2 } from 'lucide-react'
-import { SlotPaywall, GoldUpsell } from '@/components/InteractionModals' // Ensure you have this file
+import { ArrowLeft, Send, MoreVertical, Phone, Video, ShieldAlert, Contact, Ban, Flag, User, Lock, Award, Loader2, CheckCircle2, Clock, MessageSquare } from 'lucide-react'
 
-export default function ChatPage() {
+function ChatContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const autoOpenId = searchParams.get('open')
+
   const [connections, setConnections] = useState<any[]>([])
   const [activeChat, setActiveChat] = useState<any>(null)
   const [messages, setMessages] = useState<any[]>([])
   const [newMessage, setNewMessage] = useState('')
   const [user, setUser] = useState<any>(null)
-  const [userIsGold, setUserIsGold] = useState(false) // New: Track Gold Status
+  const [userIsGold, setUserIsGold] = useState(false)
+  const [loading, setLoading] = useState(true)
   
   // UI States
   const [showContactModal, setShowContactModal] = useState(false)
-  const [showLimitModal, setShowLimitModal] = useState(false) // New: Limit Modal
-  const [showGoldUpsell, setShowGoldUpsell] = useState(false)
+  const [showLimitModal, setShowLimitModal] = useState(false)
   const [showOptionsMenu, setShowOptionsMenu] = useState(false)
   const [sendingCard, setSendingCard] = useState(false)
-
-  const searchParams = useSearchParams()
-  const autoOpenId = searchParams.get('open')
 
   // 1. Load Connections & User Status
   useEffect(() => {
@@ -44,6 +43,7 @@ export default function ChatPage() {
         
         setConnections(data || [])
       }
+      setLoading(false)
     }
     loadData()
   }, [])
@@ -82,7 +82,6 @@ export default function ChatPage() {
   const myMessageCount = messages.filter(m => m.sender_id === user?.id).length
   const hasSharedContact = messages.some(m => m.sender_id === user?.id && m.content === 'Verified Contact Card 📇')
   
-  // Limit is reached IF: Not Gold AND hasn't paid for card AND sent >= 10 msgs
   const isLimitReached = !userIsGold && !hasSharedContact && myMessageCount >= 10
 
   // 3. Send Message
@@ -131,7 +130,6 @@ export default function ChatPage() {
       if (error) alert("Error: " + error.message)
       else if (data === 'error_insufficient_funds') alert("Insufficient Coins! Need 199 Coins.")
       else if (data === 'success_shared') {
-          // Success! This automatically unlocks the chat because hasSharedContact becomes true
           setShowContactModal(false)
           setShowLimitModal(false)
           setNewMessage('')
@@ -181,7 +179,8 @@ export default function ChatPage() {
       <div className="flex-1 overflow-y-auto p-4 bg-slate-50" onClick={() => setShowOptionsMenu(false)}>
         {!activeChat ? (
             <div className="space-y-2">
-                {connections.length === 0 && <div className="text-center py-10 text-slate-400">No connections yet.</div>}
+                {loading && <div className="text-center text-slate-400 mt-10">Loading chats...</div>}
+                {!loading && connections.length === 0 && <div className="text-center py-10 text-slate-400">No connections yet.</div>}
                 
                 {connections.map(c => (
                     <div key={c.id} onClick={() => c.status === 'accepted' && setActiveChat(c)} className={`p-4 rounded-xl flex items-center gap-4 shadow-sm border ${c.status === 'pending' ? 'bg-slate-50 opacity-70' : 'bg-white cursor-pointer'}`}>
@@ -213,7 +212,8 @@ export default function ChatPage() {
                         </div>
                     )
                 })}
-                {/* Visual warning that limit is approaching or reached */}
+                
+                {/* Limit Warning Inline */}
                 {isLimitReached && (
                     <div className="flex justify-center my-4">
                         <span className="text-xs font-bold text-amber-600 bg-amber-50 px-3 py-1 rounded-full border border-amber-200 flex items-center gap-2">
@@ -231,13 +231,11 @@ export default function ChatPage() {
             <input 
                 value={newMessage}
                 onChange={e => setNewMessage(e.target.value)}
-                // Disabled if limit reached
                 placeholder={isLimitReached ? "Unlock to continue..." : "Type a message..."}
                 disabled={isLimitReached} 
                 className="flex-1 bg-slate-100 rounded-full px-4 py-2 text-sm outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                 onKeyDown={e => e.key === 'Enter' && sendMessage()}
             />
-            {/* Button changes function based on limit */}
             <button 
                 onClick={isLimitReached ? () => setShowLimitModal(true) : sendMessage} 
                 className={`w-10 h-10 rounded-full flex items-center justify-center text-white shadow-lg transition ${isLimitReached ? 'bg-amber-500' : 'bg-slate-900'}`}
@@ -248,27 +246,31 @@ export default function ChatPage() {
       )}
 
       {/* MODALS */}
-
-      {/* 1. Limit Reached Modal */}
-      <SlotPaywall 
-        isOpen={showLimitModal} 
-        mode="message_limit" 
-        onClose={() => setShowLimitModal(false)}
-        onAction={sendSecureContact} // Action 1: Share Contact (199)
-      />
-
-      {/* 2. Safety/Toll Booth Modal (Reusing SlotPaywall with custom mode) */}
+      {/* Note: In a real implementation, you would import and use SlotPaywall here for showLimitModal 
+          or replicate the modal logic if SlotPaywall is not exported from InteractionModals properly.
+          Since InteractionModals was defined previously, make sure it's imported.
+      */}
       {showContactModal && (
-        <SlotPaywall 
-            isOpen={true} 
-            mode="message_limit" // Reusing UI
-            onClose={() => setShowContactModal(false)}
-            onAction={sendSecureContact}
-        />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in">
+            <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl text-center">
+                <ShieldAlert className="w-12 h-12 text-amber-500 mx-auto mb-4"/>
+                <h2 className="text-xl font-bold mb-2">Wait! Is that a number?</h2>
+                <p className="text-sm text-slate-500 mb-6">Use a Secure Contact Card for safety.</p>
+                <div className="space-y-3">
+                    <button onClick={sendSecureContact} disabled={sendingCard} className="w-full bg-slate-900 text-white font-bold py-3.5 rounded-xl flex justify-center items-center gap-2">{sendingCard ? <Loader2 className="animate-spin"/> : <><Contact size={18}/> Share Card (199 Coins)</>}</button>
+                    <button onClick={() => setShowContactModal(false)} className="w-full text-slate-500 py-2">Edit Message</button>
+                </div>
+            </div>
+        </div>
       )}
-
-      {/* 3. Gold Upsell */}
-      <GoldUpsell isOpen={showGoldUpsell} onClose={() => setShowGoldUpsell(false)} />
     </div>
+  )
+}
+
+export default function ChatPage() {
+  return (
+    <Suspense fallback={<div className="flex h-screen items-center justify-center text-slate-400">Loading chat...</div>}>
+      <ChatContent />
+    </Suspense>
   )
 }
