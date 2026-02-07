@@ -3,7 +3,7 @@ import { useEffect, useState, Suspense } from 'react'
 import { supabase } from '@/utils/supabase/client'
 import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Send, MoreVertical, Phone, Video, ShieldAlert, Contact, Ban, Flag, User, Lock, Award, Loader2, CheckCircle2, Clock, MessageSquare } from 'lucide-react'
+import { ArrowLeft, Send, MoreVertical, Phone, Video, ShieldAlert, Contact, Ban, Flag, User, Lock, Loader2, CheckCircle2, Clock } from 'lucide-react'
 
 function ChatContent() {
   const router = useRouter()
@@ -16,26 +16,26 @@ function ChatContent() {
   const [newMessage, setNewMessage] = useState('')
   const [user, setUser] = useState<any>(null)
   const [userIsGold, setUserIsGold] = useState(false)
-  const [loading, setLoading] = useState(true)
   
   // UI States
   const [showContactModal, setShowContactModal] = useState(false)
   const [showLimitModal, setShowLimitModal] = useState(false)
   const [showOptionsMenu, setShowOptionsMenu] = useState(false)
   const [sendingCard, setSendingCard] = useState(false)
+  const [loading, setLoading] = useState(true)
 
-  // 1. Load Connections & User Status
+  // 1. Load Connections
   useEffect(() => {
     const loadData = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       setUser(user)
 
       if (user) {
-        // A. Fetch Gold Status
+        // Fetch Gold Status
         const { data: profile } = await supabase.from('profiles').select('is_gold').eq('id', user.id).single()
         setUserIsGold(profile?.is_gold || false)
 
-        // B. Fetch connections
+        // Fetch connections
         const { data } = await supabase
           .from('connections')
           .select(`*, profiles:receiver_id (id, full_name, is_gold)`)
@@ -51,6 +51,8 @@ function ChatContent() {
   // 1.5 Auto-Open Logic
   useEffect(() => {
     if (autoOpenId && connections.length > 0 && !activeChat) {
+        // Note: In a real app, you'd check both requester and receiver IDs to find the right partner
+        // For this MVP schema, we are assuming profiles:receiver_id captures the partner
         const targetChat = connections.find(c => c.profiles.id === autoOpenId)
         if (targetChat && targetChat.status === 'accepted') setActiveChat(targetChat)
     }
@@ -78,23 +80,20 @@ function ChatContent() {
     return () => { supabase.removeChannel(channel) }
   }, [activeChat, user])
 
-  // --- LOGIC: THE 10 MESSAGE CAP ---
+  // Logic: 10 Message Cap
   const myMessageCount = messages.filter(m => m.sender_id === user?.id).length
   const hasSharedContact = messages.some(m => m.sender_id === user?.id && m.content === 'Verified Contact Card 📇')
-  
   const isLimitReached = !userIsGold && !hasSharedContact && myMessageCount >= 10
 
   // 3. Send Message
   const sendMessage = async () => {
     if (!newMessage.trim() || !user || !activeChat) return
 
-    // A. Check Limit
     if (isLimitReached) {
         setShowLimitModal(true)
         return
     }
 
-    // B. Safety Filter (Block Numbers)
     const phoneRegex = /\b[\d\s-]{10,}\b/
     if (phoneRegex.test(newMessage)) {
         setShowContactModal(true)
@@ -109,7 +108,6 @@ function ChatContent() {
     if (!error) setNewMessage('')
   }
 
-  // 4. Block User Logic
   const handleBlock = async () => {
       if(!confirm(`Block ${activeChat.profiles.full_name}?`)) return;
       const { error } = await supabase.rpc('block_user', { target_id: activeChat.profiles.id })
@@ -122,7 +120,6 @@ function ChatContent() {
       }
   }
 
-  // 5. Send Secure Card (199 Coins)
   const sendSecureContact = async () => {
       setSendingCard(true)
       const { data, error } = await supabase.rpc('share_contact', { target_user_id: activeChat.profiles.id })
@@ -186,6 +183,7 @@ function ChatContent() {
                     <div key={c.id} onClick={() => c.status === 'accepted' && setActiveChat(c)} className={`p-4 rounded-xl flex items-center gap-4 shadow-sm border ${c.status === 'pending' ? 'bg-slate-50 opacity-70' : 'bg-white cursor-pointer'}`}>
                         <div className="w-12 h-12 rounded-full bg-slate-200 overflow-hidden relative">
                             <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${c.profiles.full_name}`} />
+                            {c.status === 'pending' && <div className="absolute inset-0 bg-white/50 flex items-center justify-center"><Clock size={16}/></div>}
                         </div>
                         <div className="flex-1">
                             <h3 className="font-bold text-slate-900">{c.profiles.full_name}</h3>
@@ -212,12 +210,10 @@ function ChatContent() {
                         </div>
                     )
                 })}
-                
-                {/* Limit Warning Inline */}
                 {isLimitReached && (
                     <div className="flex justify-center my-4">
-                        <span className="text-xs font-bold text-amber-600 bg-amber-50 px-3 py-1 rounded-full border border-amber-200 flex items-center gap-2">
-                            <Lock size={12} /> Daily Free Limit Reached
+                        <span className="text-xs font-bold text-rose-500 bg-rose-50 px-3 py-1 rounded-full border border-rose-100">
+                            Limit Reached (10/10)
                         </span>
                     </div>
                 )}
@@ -225,33 +221,17 @@ function ChatContent() {
         )}
       </div>
 
-      {/* Input Area */}
+      {/* Input */}
       {activeChat && (
         <div className="p-3 bg-white border-t border-slate-100 flex gap-2">
-            <input 
-                value={newMessage}
-                onChange={e => setNewMessage(e.target.value)}
-                placeholder={isLimitReached ? "Unlock to continue..." : "Type a message..."}
-                disabled={isLimitReached} 
-                className="flex-1 bg-slate-100 rounded-full px-4 py-2 text-sm outline-none disabled:opacity-50 disabled:cursor-not-allowed"
-                onKeyDown={e => e.key === 'Enter' && sendMessage()}
-            />
-            <button 
-                onClick={isLimitReached ? () => setShowLimitModal(true) : sendMessage} 
-                className={`w-10 h-10 rounded-full flex items-center justify-center text-white shadow-lg transition ${isLimitReached ? 'bg-amber-500' : 'bg-slate-900'}`}
-            >
-                {isLimitReached ? <Lock size={16} /> : <Send size={18} />}
-            </button>
+            <input value={newMessage} onChange={e => setNewMessage(e.target.value)} placeholder="Type a message..." className="flex-1 bg-slate-100 rounded-full px-4 py-2 text-sm outline-none" onKeyDown={e => e.key === 'Enter' && sendMessage()} />
+            <button onClick={sendMessage} className="w-10 h-10 bg-slate-900 rounded-full flex items-center justify-center text-white"><Send size={18} /></button>
         </div>
       )}
 
-      {/* MODALS */}
-      {/* Note: In a real implementation, you would import and use SlotPaywall here for showLimitModal 
-          or replicate the modal logic if SlotPaywall is not exported from InteractionModals properly.
-          Since InteractionModals was defined previously, make sure it's imported.
-      */}
+      {/* Modals */}
       {showContactModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
             <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl text-center">
                 <ShieldAlert className="w-12 h-12 text-amber-500 mx-auto mb-4"/>
                 <h2 className="text-xl font-bold mb-2">Wait! Is that a number?</h2>
@@ -263,13 +243,26 @@ function ChatContent() {
             </div>
         </div>
       )}
+      
+      {showLimitModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+             <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl text-center">
+                <Lock className="w-12 h-12 text-amber-500 mx-auto mb-4"/>
+                <h2 className="text-xl font-bold mb-2">Vibe Check Complete</h2>
+                <p className="text-sm text-slate-500 mb-6">You've reached the 10-message limit. Share your contact to continue.</p>
+                <button onClick={sendSecureContact} className="w-full bg-slate-900 text-white font-bold py-3.5 rounded-xl mb-3">Share Contact (199 Coins)</button>
+                <button onClick={() => setShowLimitModal(false)} className="w-full text-slate-500">Cancel</button>
+             </div>
+        </div>
+      )}
     </div>
   )
 }
 
+// WRAPPER TO FIX BUILD ERROR
 export default function ChatPage() {
   return (
-    <Suspense fallback={<div className="flex h-screen items-center justify-center text-slate-400">Loading chat...</div>}>
+    <Suspense fallback={<div className="h-screen w-full flex items-center justify-center"><Loader2 className="animate-spin text-slate-400"/></div>}>
       <ChatContent />
     </Suspense>
   )
