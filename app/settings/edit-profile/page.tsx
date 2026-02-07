@@ -1,6 +1,5 @@
 'use client'
 import { useState, useEffect } from 'react'
-// CHANGED: Using relative import to guarantee file finding
 import { supabase } from '../../../utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -8,10 +7,9 @@ import {
   ArrowLeft, ArrowRight, Loader2, Sparkles, 
   Shield, MapPin, DollarSign, Lock, X, Camera 
 } from 'lucide-react'
-// CHANGED: Using relative import to guarantee file finding
-import { polishBioMock, type BioTone } from '../../../lib/ai/profilePolisher'
-// NEW: Import the Avatar Upload Component
 import AvatarUpload from '../../../components/AvatarUpload'
+// CHANGED: Now importing the Server Action
+import { generateBioAction, type BioTone } from '../../actions/generateBio'
 
 // --- 1. TYPES & ARCHITECTURE ---
 
@@ -26,7 +24,7 @@ type ProfileData = {
   city: string
   gender: string
   intent: string
-  avatar_url: string | null // NEW: Photo State
+  avatar_url: string | null
   jobTitle: string
   company: string
   industry: string
@@ -44,12 +42,12 @@ export default function EditProfileEngine() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [step, setStep] = useState(1)
-  const TOTAL_STEPS = 7 // Increased from 6 to 7 (Added Photos)
+  const TOTAL_STEPS = 6
 
   // Global State for the Wizard
   const [data, setData] = useState<ProfileData>({
     full_name: '', city: '', gender: '', intent: '',
-    avatar_url: null, // Default null
+    avatar_url: null,
     jobTitle: '', company: '', industry: '', careerGhostMode: true,
     diet: '', drink: '', smoke: '',
     signals: { incomeSignal: { min: 12, max: 20 }, religionSignal: '', familyTypeSignal: '' },
@@ -74,6 +72,7 @@ export default function EditProfileEngine() {
         const life = profile.lifestyle || {}
         const signals = profile.profile_signals || {} 
         const oldRoots = profile.roots || {} 
+        const oldIncome = profile.income_level ? parseInt(profile.income_level) : 12
 
         setData(prev => ({
           ...prev,
@@ -81,14 +80,15 @@ export default function EditProfileEngine() {
           city: profile.city || '',
           gender: profile.gender || '',
           intent: profile.intent || 'dating_marriage',
-          avatar_url: profile.avatar_url || null, // Load Avatar
+          avatar_url: profile.avatar_url || null,
           diet: life.diet || '',
           drink: life.drink || '',
           smoke: life.smoke || '',
-          bio: profile.bio || '',
+          bio: profile.bio || '', // Assuming bio column exists or we add it
           
+          // Load Signals (Soft Data)
           signals: {
-            incomeSignal: signals.incomeSignal || { min: 12, max: 20 },
+            incomeSignal: signals.incomeSignal || { min: oldIncome, max: oldIncome + 10 },
             religionSignal: signals.religionSignal || oldRoots.religion || '',
             familyTypeSignal: signals.familyTypeSignal || oldRoots.familyType || ''
           }
@@ -120,9 +120,10 @@ export default function EditProfileEngine() {
       city: data.city,
       intent: data.intent,
       gender: data.gender,
-      avatar_url: data.avatar_url, // Save Avatar URL
+      avatar_url: data.avatar_url,
       lifestyle: { diet: data.diet, drink: data.drink, smoke: data.smoke },
-      profile_signals: data.signals, // Saving as Soft Signals
+      profile_signals: data.signals, // Save the Soft Signals JSON
+      // bio: data.bio  <-- Ensure 'bio' column exists in DB if you want to save this
     }).eq('id', user.id)
 
     // Update Career Table
@@ -175,11 +176,10 @@ export default function EditProfileEngine() {
         <div className="flex-1 p-6 overflow-y-auto">
             {step === 1 && <StageIntent data={data} update={update} />}
             {step === 2 && <StageBasics data={data} update={update} />}
-            {step === 3 && <StagePhotos data={data} update={update} />} {/* NEW STEP */}
+            {step === 3 && <StagePhotos data={data} update={update} />}
             {step === 4 && <StageCareer data={data} update={update} />}
-            {step === 5 && <StageLifestyle data={data} update={update} />}
-            {step === 6 && <StagePrivateSignals data={data} updateSignal={updateSignal} />}
-            {step === 7 && <StageAIBio data={data} update={update} />}
+            {step === 5 && <StagePrivateSignals data={data} updateSignal={updateSignal} />}
+            {step === 6 && <StageAIBio data={data} update={update} />}
         </div>
 
         {/* SHELL FOOTER */}
@@ -233,21 +233,11 @@ function StageBasics({ data, update }: any) {
   )
 }
 
-// --- NEW: PHOTOS STAGE ---
 function StagePhotos({ data, update }: any) {
     return (
       <div className="animate-in slide-in-from-right duration-300 space-y-6">
-        <div>
-          <h2 className="text-2xl font-serif font-bold text-slate-900 mb-2">Your Photo</h2>
-          <p className="text-slate-500">Add a clear profile picture to get verified.</p>
-        </div>
-        
-        <div className="flex justify-center py-8">
-            <AvatarUpload 
-                url={data.avatar_url} 
-                onUpload={(url) => update('avatar_url', url)} 
-            />
-        </div>
+        <div><h2 className="text-2xl font-serif font-bold text-slate-900 mb-2">Your Photo</h2><p className="text-slate-500">Add a clear profile picture to get verified.</p></div>
+        <div className="flex justify-center py-8"><AvatarUpload url={data.avatar_url} onUpload={(url: string) => update('avatar_url', url)} /></div>
       </div>
     )
 }
@@ -271,23 +261,12 @@ function StageCareer({ data, update }: any) {
 }
 
 function StageLifestyle({ data, update }: any) {
-  const categories = [
-      { id: 'diet', label: 'Diet', options: ['Veg', 'Non-Veg', 'Vegan', 'Eggetarian'] },
-      { id: 'drink', label: 'Drink', options: ['Yes', 'No', 'Socially', 'Teetotaler'] },
-      { id: 'smoke', label: 'Smoke', options: ['Yes', 'No', 'Never', 'Trying to quit'] },
-  ]
+  const categories = [{ id: 'diet', label: 'Diet', options: ['Veg', 'Non-Veg', 'Vegan'] }, { id: 'drink', label: 'Drink', options: ['Yes', 'No', 'Socially'] }, { id: 'smoke', label: 'Smoke', options: ['Yes', 'No', 'Never'] }]
   return (
     <div className="animate-in slide-in-from-right duration-300 space-y-6">
       <div className="mb-2"><h2 className="text-2xl font-serif font-bold text-slate-900 mb-2">Lifestyle</h2><p className="text-slate-500">Tap to select your habits.</p></div>
       {categories.map(cat => (
-          <div key={cat.id} className="space-y-3">
-              <label className="text-xs font-bold text-slate-400 uppercase">{cat.label}</label>
-              <div className="flex flex-wrap gap-2">
-                  {cat.options.map(opt => (
-                      <button key={opt} onClick={() => update(cat.id as any, opt)} className={`px-4 py-2.5 rounded-full text-sm font-medium transition ${data[cat.id as keyof ProfileData] === opt ? 'bg-slate-900 text-white shadow-lg' : 'bg-white border border-slate-200 text-slate-600'}`}>{opt}</button>
-                  ))}
-              </div>
-          </div>
+          <div key={cat.id} className="space-y-3"><label className="text-xs font-bold text-slate-400 uppercase">{cat.label}</label><div className="flex flex-wrap gap-2">{cat.options.map(opt => (<button key={opt} onClick={() => update(cat.id as any, opt)} className={`px-4 py-2.5 rounded-full text-sm font-medium transition ${data[cat.id as keyof ProfileData] === opt ? 'bg-slate-900 text-white shadow-lg' : 'bg-white border border-slate-200 text-slate-600'}`}>{opt}</button>))}</div></div>
       ))}
     </div>
   )
@@ -299,11 +278,9 @@ function StagePrivateSignals({ data, updateSignal }: { data: ProfileData, update
   return (
     <div className="animate-in slide-in-from-right duration-300 space-y-8">
       <div><h2 className="text-2xl font-serif font-bold text-slate-900 mb-2">Private Preferences</h2><p className="text-slate-500 text-sm">Optional signals. These are <b>private by default</b>.</p></div>
+      <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex gap-3 items-center mb-2"><div className="p-2 bg-white rounded-full text-slate-400"><Lock size={16}/></div><p className="text-xs text-slate-500">This data is not shown on your public profile.</p></div>
       <div className="space-y-4">
-        <div className="flex justify-between items-center">
-            <label className="font-bold text-slate-900 flex items-center gap-2"><DollarSign size={18}/> Comfort Range (Income)</label>
-            <span className="text-xl font-bold text-slate-900">₹{incomeMin}-{incomeMin + 8}L</span>
-        </div>
+        <div className="flex justify-between items-center"><label className="font-bold text-slate-900 flex items-center gap-2"><DollarSign size={18}/> Comfort Range (Income)</label><span className="text-xl font-bold text-slate-900">₹{incomeMin}-{incomeMin + 8}L</span></div>
         <input type="range" min="5" max="100" value={incomeMin} onChange={e => { const val = parseInt(e.target.value); updateSignal('incomeSignal', { min: val, max: val + 8 }) }} className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-slate-900" />
         <div className="flex justify-between text-xs text-slate-400 font-bold"><span>₹5L</span><span>₹1 Cr+</span></div>
       </div>
@@ -320,15 +297,17 @@ function StagePrivateSignals({ data, updateSignal }: { data: ProfileData, update
 function StageAIBio({ data, update }: any) {
   const [isPolishing, setIsPolishing] = useState(false)
   const [showAiOptions, setShowAiOptions] = useState(false)
-
+  
   const applyPolish = async (tone: BioTone) => {
       setIsPolishing(true)
-      const polished = await polishBioMock(data.bio || "", tone)
+      // Call the Server Action
+      const polished = await generateBioAction(data.bio || "", tone)
       update('bio', polished)
       setIsPolishing(false)
       setShowAiOptions(false)
   }
 
+  // Strictly typed array for .map
   const tones = ['Chill', 'Witty', 'Romantic'] as const;
 
   return (
