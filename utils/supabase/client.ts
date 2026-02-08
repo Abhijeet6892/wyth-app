@@ -5,7 +5,7 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    flowType: 'pkce', // <--- This forces the ?code= flow
+    flowType: 'pkce', // <--- This is MANDATORY
     detectSessionInUrl: true,
     persistSession: true,
   },
