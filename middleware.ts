@@ -12,7 +12,11 @@ export async function middleware(request: NextRequest) {
         getAll() {
           return request.cookies.getAll()
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet: {
+          name: string
+          value: string
+          options?: Parameters<typeof response.cookies.set>[2]
+        }[]) {
           cookiesToSet.forEach(({ name, value, options }) => {
             response.cookies.set(name, value, options)
           })
@@ -21,14 +25,10 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // 🔑 REQUIRED: refresh session & persist PKCE cookies
   await supabase.auth.getSession()
-
   return response
 }
 
 export const config = {
-  matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
-  ],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
 }
