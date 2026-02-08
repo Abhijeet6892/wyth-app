@@ -31,8 +31,8 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        // Redirect to your current page after login
-        redirectTo: 'https://wyth-app.vercel.app/auth/callback',
+        // DYNAMIC REDIRECT: Works on localhost AND Vercel automatically
+        redirectTo: `${window.location.origin}/auth/callback`,
       },
     })
     
@@ -40,7 +40,6 @@ export default function LoginPage() {
         setErrorMsg(error.message)
         setGoogleLoading(false)
     }
-    // Note: If successful, Google takes over and redirects user.
   }
 
   const handleAuth = async (e: React.FormEvent) => {
@@ -54,13 +53,18 @@ export default function LoginPage() {
 
     try {
         if (isSignUp) {
-            const { error } = await supabase.auth.signUp({ email, password })
+            const { error } = await supabase.auth.signUp({
+                email,
+                password,
+            })
             if (error) throw error
             router.push('/onboarding')
         } else {
-            const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+            const { data, error } = await supabase.auth.signInWithPassword({
+                email,
+                password,
+            })
             if (error) throw error
-            
             if (data.user) {
                 const { data: profile } = await supabase.from('profiles').select('id').eq('id', data.user.id).single()
                 router.push(profile ? '/' : '/onboarding')
@@ -86,7 +90,7 @@ export default function LoginPage() {
           {isSignUp ? "Create your account" : "Sign in to your account"}
         </h2>
         <p className="mt-2 text-center text-sm text-slate-500">
-          Join the high-intent community.
+          {isSignUp ? "Join the high-intent community." : "Welcome back."}
         </p>
       </div>
 
@@ -122,7 +126,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* EMAIL FORM (Existing) */}
+          {/* EMAIL FORM */}
           <form className="space-y-6" onSubmit={handleAuth}>
             <div>
                 <label className="block text-sm font-medium leading-6 text-slate-900">Email address</label>
