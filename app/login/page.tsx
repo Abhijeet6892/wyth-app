@@ -32,7 +32,7 @@ export default function LoginPage() {
       provider: 'google',
       options: {
         // Redirect to your current page after login
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: 'https://wyth-app.vercel.app/auth/callback',
       },
     })
     
