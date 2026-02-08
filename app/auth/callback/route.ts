@@ -8,6 +8,7 @@ export async function GET(request: Request) {
   const next = searchParams.get('next') ?? '/'
 
   if (code) {
+    // 1. Use the Server Client (cookies) to exchange the code
     const supabase = await createClient()
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     
@@ -16,11 +17,10 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${origin}${next}`)
     } else {
         console.error("Auth Callback Error:", error.message)
+        // Redirect with the REAL error message so we can see it
+        return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(error.message)}`)
     }
-  } else {
-      console.error("Auth Callback Error: No code found in URL")
   }
 
-  // return the user to an error page with instructions
-  return NextResponse.redirect(`${origin}/login?error=auth_exchange_failed`)
+  return NextResponse.redirect(`${origin}/login?error=no_code_detected`)
 }
