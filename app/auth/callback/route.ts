@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server'
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  // If "next" is passed, redirect there, otherwise go home
+  // if "next" is in param, use it as the redirect URL
   const next = searchParams.get('next') ?? '/'
 
   if (code) {
@@ -12,13 +12,15 @@ export async function GET(request: Request) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     
     if (!error) {
-      // Login successful!
-      // The Logic in app/page.tsx will handle the "Profile Check" 
-      // and redirect to /onboarding if needed.
+      console.log("Auth Callback: Success! Redirecting to", next)
       return NextResponse.redirect(`${origin}${next}`)
+    } else {
+        console.error("Auth Callback Error:", error.message)
     }
+  } else {
+      console.error("Auth Callback Error: No code found in URL")
   }
 
-  // If login fails, send them back to login with an error
-  return NextResponse.redirect(`${origin}/login?error=auth_failed`)
+  // return the user to an error page with instructions
+  return NextResponse.redirect(`${origin}/login?error=auth_exchange_failed`)
 }
