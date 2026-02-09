@@ -334,7 +334,7 @@ export default function Home() {
             <Link href="/chat" className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-slate-600 hover:bg-slate-200 transition cursor-pointer">
                 <MessageCircle size={20} />
             </Link>
-            <Link href={user ? "/settings" : "/login"} className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-slate-600 hover:bg-slate-200 transition cursor-pointer">
+            <Link href={user ? "/profile" : "/login"} className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-slate-600 hover:bg-slate-200 transition cursor-pointer">
                 <UserCircle size={20} />
             </Link>
         </div>
