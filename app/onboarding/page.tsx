@@ -209,13 +209,13 @@ export default function OnboardingEngine() {
 
   // Global State
   const [data, setData] = useState<ProfileData>({
-    full_name: '', phone: '', gender: '', intent: 'dating_marriage',
+    full_name: '', phone: '', gender: '', intent: 'dating_for_marriage',
     avatar_url: null,
     // City defaults
     city_display: '', city_normalized: '', city_category: '',
     jobTitle: '', company: '', industry: '', careerGhostMode: true,
     diet: '', drink: '', smoke: '',
-    signals: { incomeSignal: { min: 12, max: 20 }, religionSignal: '', familyTypeSignal: '' },
+    signals: { incomeSignal: { min: 0, max: 50}, religionSignal: '', familyTypeSignal: '' },
     bio: ''
   })
 
@@ -238,11 +238,11 @@ export default function OnboardingEngine() {
     try {
         // Validation Guards
         if (step === 2) {
-            if (!data.full_name || !data.gender) throw new Error("Please fill in your identity details.")
+            if (!data.full_name || !data.gender) throw new Error("Full Name and Gender are required")
             if (!data.city_display || !data.city_category) throw new Error("Please select a valid city.")
-            if (!data.phone || data.phone.length < 10) throw new Error("Please enter a valid phone number.")
+            if (!data.phone || data.phone.length < 10) throw new Error("Please enter a valid phone number with country code.")
         }
-        if (step === 3 && !data.avatar_url) throw new Error("Please upload a photo to continue.")
+        if (step === 3 && !data.avatar_url) throw new Error("A photo is requiredto continue.")
 
         // Database Updates
         let error = null
@@ -279,7 +279,7 @@ export default function OnboardingEngine() {
                 role: data.jobTitle,
                 industry: data.industry,
                 company_real_name: data.company,
-                company_display_name: data.careerGhostMode ? "Top Tier Firm" : data.company,
+                company_display_name: data.careerGhostMode ? "Private Firm" : data.company,
             })
             error = err
         }
@@ -343,7 +343,7 @@ export default function OnboardingEngine() {
 // --- SUB-COMPONENTS ---
 
 function StageIntent({ data, update }: any) {
-  const options = [{ id: 'exploring', label: 'Exploring Seriously', desc: 'Intentional, but early stage.' }, { id: 'dating_marriage', label: 'Dating for Marriage', desc: 'Looking to build something real.' }, { id: 'ready_marriage', label: 'Ready for Marriage', desc: 'Clear intent. 1-2 year timeline.' }]
+  const options = [{ id: 'exploring', label: 'Exploring Seriously', desc: 'Intentional, but early stage.' }, { id: 'dating_for_marriage', label: 'Dating for Marriage', desc: 'Looking to build something real.' }, { id: 'ready_for_marriage', label: 'Ready for Marriage', desc: 'Clear intent. 1-2 year timeline.' }]
   return (
     <div className="animate-in slide-in-from-right duration-300">
       <h2 className="text-2xl font-serif font-bold text-slate-900 mb-2">Welcome to WYTH</h2>

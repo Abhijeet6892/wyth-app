@@ -1,12 +1,11 @@
 'use client'
 import { useEffect, useState } from 'react'
-// FIXED: Relative import path
 import { supabase } from '../../utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { 
   ArrowLeft, User, Heart, Briefcase, Camera, 
-  Eye, Receipt, LogOut, Trash2, ChevronRight, ShieldCheck, Zap, Instagram 
+  Eye, Receipt, LogOut, Trash2, ChevronRight, ShieldCheck, Zap, Instagram, Eye as ViewIcon
 } from 'lucide-react'
 
 export default function Settings() {
@@ -28,7 +27,6 @@ export default function Settings() {
     router.push('/login')
   }
 
-  // --- DELETE ACCOUNT LOGIC ---
   const handleDelete = async () => {
       if (!confirm("Are you sure? This will delete your profile, coins, and chats permanently.")) return
       if (!confirm("Final warning: This action cannot be undone.")) return
@@ -83,12 +81,21 @@ export default function Settings() {
 
       <div className="p-4 space-y-6">
         
+        {/* VIEW PROFILE SHORTCUT */}
+        <div className="bg-white rounded-xl overflow-hidden shadow-sm border border-slate-100">
+             <SettingsItem icon={ViewIcon} label="View My Profile" href="/profile" color="text-indigo-600"/>
+        </div>
+
         {/* SECTION 1: PROFILE */}
         <div>
             <h3 className="text-xs font-bold text-slate-400 uppercase mb-2 px-1">Profile</h3>
             <div className="rounded-xl overflow-hidden shadow-sm border border-slate-100">
                 <SettingsItem icon={User} label="Edit Personal Details" href="/settings/edit-profile" />
-                <SettingsItem icon={Camera} label="Manage Photos" href="/settings/edit-profile" />
+                
+                {/* ✅ FIX: Points to the Photo Grid, NOT the Wizard */}
+                <SettingsItem icon={Camera} label="Manage Photos" href="/settings/photos" />
+                
+                {/* Note: Partner Preferences currently lives inside the Edit Profile wizard */}
                 <SettingsItem icon={Heart} label="Update Partner Preferences" href="/settings/edit-profile" />
             </div>
         </div>
@@ -99,6 +106,8 @@ export default function Settings() {
             <div className="rounded-xl overflow-hidden shadow-sm border border-slate-100">
                 <SettingsItem icon={Briefcase} label="LinkedIn Verification" value="Verified" color="text-blue-600" />
                 <SettingsItem icon={Instagram} label="Instagram Connection" color="text-pink-600" />
+                
+                {/* ✅ FIX: Points to the Privacy Toggle Page */}
                 <SettingsItem icon={Eye} label="Visibility Controls" href="/settings/privacy" />
             </div>
         </div>
