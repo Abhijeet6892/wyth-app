@@ -9,12 +9,161 @@ import {
 import AvatarUpload from '../../components/AvatarUpload'
 import { polishBioMock, type BioTone } from '../../lib/ai/profilePolisher'
 
-// --- CONSTANTS ---
+// --- CONSTANTS (EXPANDED GLOBAL LIST) ---
 const KNOWN_CITIES = [
-  "Mumbai", "Delhi NCR", "Bangalore", "Hyderabad", "Pune", 
-  "Chennai", "Kolkata", "Ahmedabad", "Jaipur", "Chandigarh", 
-  "Lucknow", "Indore", "Dubai", "London", "New York", 
-  "Singapore", "Toronto"
+  // 🇮🇳 INDIA — Metros & Tier 1
+  "Mumbai","Delhi NCR","New Delhi","Gurugram","Noida","Faridabad","Ghaziabad",
+  "Bangalore","Hyderabad","Chennai","Kolkata","Pune","Ahmedabad","Surat","Vadodara",
+  "Jaipur","Udaipur","Jodhpur","Ajmer",
+  "Chandigarh","Mohali","Panchkula",
+  "Lucknow","Kanpur","Agra","Varanasi","Prayagraj","Noida Extension",
+  "Indore","Bhopal","Jabalpur","Gwalior",
+  "Bhubaneswar","Cuttack",
+  "Patna","Gaya","Muzaffarpur",
+  "Ranchi","Jamshedpur","Dhanbad",
+  "Raipur","Bilaspur",
+  "Nagpur","Nashik","Aurangabad","Solapur","Kolhapur",
+  "Thane","Navi Mumbai","Kalyan","Dombivli",
+  "Amritsar","Ludhiana","Jalandhar","Patiala",
+  "Dehradun","Haridwar","Roorkee",
+  "Shimla","Solan",
+  "Srinagar","Jammu",
+  "Guwahati","Silchar","Dibrugarh",
+  "Shillong",
+  "Imphal",
+  "Aizawl",
+  "Kohima","Dimapur",
+  "Agartala",
+  "Gangtok",
+  "Itanagar",
+  "Panaji","Margao","Vasco da Gama",
+  "Thiruvananthapuram","Kochi","Ernakulam","Thrissur","Kozhikode",
+  "Coimbatore","Madurai","Trichy","Salem","Erode","Vellore","Tirunelveli",
+  "Tirupati","Vijayawada","Guntur","Visakhapatnam","Rajahmundry","Kakinada",
+  "Warangal","Nizamabad","Karimnagar",
+  "Mangaluru","Udupi","Mysuru","Hubballi","Belagavi","Davangere","Shivamogga",
+  "Hisar","Rohtak","Panipat","Sonipat","Karnal",
+  "Rewari","Bhiwani",
+  "Alwar","Bharatpur",
+  "Siliguri","Asansol","Durgapur",
+  "Howrah","Hooghly",
+  "Kharagpur",
+  "Port Blair",
+  "Leh",
+  "Kargil",
+
+  // 🌍 INTERNATIONAL — Major Global Cities
+  // 🇺🇸 USA
+  "New York","San Francisco","San Jose","Los Angeles","San Diego",
+  "Seattle","Redmond","Bellevue",
+  "Chicago","Austin","Dallas","Houston",
+  "Boston","Cambridge",
+  "Washington DC","Arlington","Reston",
+  "Atlanta","Miami","Orlando",
+  "San Mateo","Mountain View","Sunnyvale","Palo Alto","Cupertino",
+  "Fremont","Milpitas",
+  "Newark","Jersey City","Edison","Princeton",
+  "Raleigh","Durham","Chapel Hill",
+
+  // 🇨🇦 Canada
+  "Toronto","Mississauga","Brampton","Scarborough",
+  "Vancouver","Burnaby","Surrey","Richmond",
+  "Calgary","Edmonton",
+  "Montreal","Laval",
+  "Ottawa","Waterloo","Kitchener",
+
+  // 🇬🇧 UK
+  "London","Greater London","Canary Wharf",
+  "Manchester","Birmingham","Leeds","Sheffield",
+  "Reading","Slough","Wembley",
+  "Milton Keynes","Oxford","Cambridge",
+  "Leicester","Nottingham",
+
+  // 🇦🇪 UAE
+  "Dubai","Abu Dhabi","Sharjah","Ajman","Al Ain",
+  "Ras Al Khaimah","Fujairah",
+
+  // 🇦🇺 Australia
+  "Sydney","Melbourne","Brisbane","Perth","Adelaide",
+  "Canberra","Parramatta",
+
+  // 🇳🇿 New Zealand
+  "Auckland","Wellington","Christchurch",
+
+  // 🇩🇪 Germany
+  "Berlin","Munich","Frankfurt","Hamburg","Stuttgart","Dusseldorf",
+
+  // 🇫🇷 France
+  "Paris","La Defense","Lyon","Marseille","Nice",
+
+  // 🇳🇱 Netherlands
+  "Amsterdam","Rotterdam","The Hague","Utrecht",
+
+  // 🇸🇬 Singapore
+  "Singapore",
+
+  // 🇯🇵 Japan
+  "Tokyo","Yokohama","Osaka","Kyoto","Nagoya",
+
+  // 🇨🇳 China / HK
+  "Hong Kong","Shenzhen","Shanghai","Beijing","Guangzhou",
+
+  // 🇮🇪 Ireland
+  "Dublin","Cork","Galway",
+
+  // 🇮🇹 Italy
+  "Milan","Rome","Turin","Florence",
+
+  // 🇪🇸 Spain
+  "Barcelona","Madrid","Valencia",
+
+  // 🇨🇭 Switzerland
+  "Zurich","Geneva","Basel",
+
+  // 🇸🇪 Sweden
+  "Stockholm","Gothenburg",
+
+  // 🇳🇴 Norway
+  "Oslo",
+
+  // 🇩🇰 Denmark
+  "Copenhagen",
+
+  // 🇧🇪 Belgium
+  "Brussels",
+
+  // 🇵🇹 Portugal
+  "Lisbon","Porto",
+
+  // 🇿🇦 South Africa
+  "Johannesburg","Cape Town","Pretoria",
+
+  // 🇶🇦 Qatar
+  "Doha",
+
+  // 🇸🇦 Saudi Arabia
+  "Riyadh","Jeddah",
+
+  // 🇲🇾 Malaysia
+  "Kuala Lumpur","Petaling Jaya",
+
+  // 🇮🇩 Indonesia
+  "Jakarta","Bali",
+
+  // 🇹🇭 Thailand
+  "Bangkok",
+
+  // 🇰🇷 South Korea
+  "Seoul",
+
+  // 🇧🇷 Brazil
+  "Sao Paulo","Rio de Janeiro",
+
+  // 🇲🇽 Mexico
+  "Mexico City",
+
+  // 🇷🇺 Russia
+  "Moscow","Saint Petersburg"
 ]
 
 // --- TYPES ---
@@ -90,7 +239,7 @@ export default function OnboardingEngine() {
         // Validation Guards
         if (step === 2) {
             if (!data.full_name || !data.gender) throw new Error("Please fill in your identity details.")
-            if (!data.city_display || !data.city_category) throw new Error("Please select a valid city from the list.")
+            if (!data.city_display || !data.city_category) throw new Error("Please select a valid city.")
             if (!data.phone || data.phone.length < 10) throw new Error("Please enter a valid phone number.")
         }
         if (step === 3 && !data.avatar_url) throw new Error("Please upload a photo to continue.")
@@ -110,7 +259,7 @@ export default function OnboardingEngine() {
                 updates.phone = data.phone 
                 updates.gender = data.gender
                 // Strict City Saving
-                updates.city = data.city_display // Legacy support
+                updates.city = data.city_display 
                 updates.city_display = data.city_display
                 updates.city_normalized = data.city_normalized
                 updates.city_category = data.city_category
@@ -204,14 +353,14 @@ function StageIntent({ data, update }: any) {
   )
 }
 
-// --- UPDATED: STRICT CITY LOGIC ---
+// --- UPDATED: STRICT CITY LOGIC (Dropdown Fixed) ---
 function StageBasics({ data, update }: any) {
   // Initialize with existing data if present
-  const [cityQuery, setCityQuery] = useState(data.city_display || '')
+  const [cityQuery, setCityQuery] = useState(data.city_display?.split(' (')[0] || '')
   const [showCityList, setShowCityList] = useState(false)
   const wrapperRef = useRef<HTMLDivElement>(null)
 
-  // Filter Logic
+  // Filter Logic: If query matches known list
   const filteredCities = KNOWN_CITIES.filter(c => c.toLowerCase().includes(cityQuery.toLowerCase()))
 
   const selectCity = (city: string, type: 'known' | 'other') => {
@@ -226,7 +375,7 @@ function StageBasics({ data, update }: any) {
           update('city_display', `${cleanInput} (Other)`)
           update('city_normalized', `${cleanInput.toLowerCase()}_other`)
           update('city_category', 'other')
-          setCityQuery(`${cleanInput} (Other)`)
+          setCityQuery(cleanInput)
       }
       setShowCityList(false)
   }
@@ -259,7 +408,7 @@ function StageBasics({ data, update }: any) {
           </div>
       </div>
 
-      {/* SEARCHABLE CITY SELECTOR */}
+      {/* SEARCHABLE CITY SELECTOR (FIXED) */}
       <div ref={wrapperRef} className="relative">
           <label className="text-xs font-bold text-slate-400 uppercase">Current City</label>
           <div className="relative mt-2">
@@ -273,19 +422,23 @@ function StageBasics({ data, update }: any) {
             />
           </div>
           
-          {showCityList && cityQuery && (
+          {/* FIX: Removed '&& cityQuery' check. Now shows list on click. */}
+          {showCityList && (
               <div className="absolute z-50 w-full mt-2 bg-white rounded-xl shadow-xl border border-slate-100 max-h-60 overflow-y-auto">
                   {filteredCities.map(city => (
                       <div key={city} onClick={() => selectCity(city, 'known')} className="p-3 hover:bg-slate-50 cursor-pointer text-sm font-medium border-b border-slate-50 last:border-none">
                           {city}
                       </div>
                   ))}
-                  <div onClick={() => selectCity(cityQuery, 'other')} className="p-3 hover:bg-blue-50 cursor-pointer text-sm font-bold text-blue-600 border-t border-slate-100">
-                      Use "{cityQuery}" (Other)
-                  </div>
+                  
+                  {/* Show 'Other' if typed value is not an exact match */}
+                  {cityQuery && !KNOWN_CITIES.includes(cityQuery) && (
+                      <div onClick={() => selectCity(cityQuery, 'other')} className="p-3 hover:bg-blue-50 cursor-pointer text-sm font-bold text-blue-600 border-t border-slate-100">
+                          Use "{cityQuery}" (Other)
+                      </div>
+                  )}
               </div>
           )}
-          {data.city_category === 'other' && <p className="text-xs text-amber-600 mt-2">Note: Matches may be fewer in unlisted cities.</p>}
       </div>
 
       <div>
