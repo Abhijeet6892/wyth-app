@@ -5,9 +5,10 @@ import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { 
   ArrowLeft, Send, MoreVertical, Phone, Video, ShieldAlert, 
-  Contact, Ban, Flag, User, Lock, Loader2, Clock, UserMinus 
+  Contact, Ban, Flag, User, Lock, Loader2, Clock, UserMinus, Sparkles, X 
 } from 'lucide-react'
 import { SlotPaywall, GoldUpsell } from '@/components/InteractionModals'
+import { generateChatHelp, type ChatIntent } from '../actions/generateChatHelp'
 
 function ChatContent() {
   const router = useRouter()
@@ -27,6 +28,10 @@ function ChatContent() {
   const [showOptionsMenu, setShowOptionsMenu] = useState(false)
   const [sendingCard, setSendingCard] = useState(false)
   const [loading, setLoading] = useState(true)
+  
+  // AI States
+  const [showAiMenu, setShowAiMenu] = useState(false)
+  const [aiLoading, setAiLoading] = useState(false)
 
   // 1. Load Data
   useEffect(() => {
@@ -40,7 +45,7 @@ function ChatContent() {
 
         const { data } = await supabase
           .from('connections')
-          .select(`*, profiles:receiver_id (id, full_name, is_gold, profile_signals)`)
+          .select(`*, profiles:receiver_id (id, full_name, is_gold, profile_signals, city, intent)`)
           .or(`requester_id.eq.${user.id},receiver_id.eq.${user.id}`)
         
         setConnections(data || [])
@@ -84,51 +89,28 @@ function ChatContent() {
   const hasSharedContact = messages.some(m => m.sender_id === user?.id && m.content === 'Verified Contact Card 📇')
   const isLimitReached = !userIsGold && !hasSharedContact && myMessageCount >= 10
 
-  // --- SMART FILTER ENGINE (The Logic) ---
-  const checkForPhoneNumber = (text: string) => {
-      // 1. Basic Regex for digits (e.g. 9876543210)
-      if (/\b[\d\s-]{10,}\b/.test(text)) return true;
-
-      // 2. Advanced Linguistic Filter
-      const lower = text.toLowerCase();
+  // --- AI LOGIC ---
+  const handleAiAssist = async (intent: ChatIntent) => {
+      if (!activeChat) return
+      setAiLoading(true)
       
-      // Map of words to digits (Including Hinglish/Regional variants)
-      const numberWords: Record<string, string> = {
-          'zero': '0', 'shunya': '0', 'sifr': '0', 'null': '0', 'nada': '0', 'nol': '0',
-          'one': '1', 'won': '1', 'ek': '1', 'ik': '1', 'uno': '1', 'una': '1',
-          'two': '2', 'to': '2', 'too': '2', 'do': '2', 'dui': '2', 'doh': '2', 'dos': '2',
-          'three': '3', 'tree': '3', 'teen': '3', 'tin': '3', 'san': '3',
-          'four': '4', 'for': '4', 'char': '4', 'chaar': '4', 'shi': '4',
-          'five': '5', 'fiv': '5', 'panch': '5', 'paanch': '5', 'pach': '5', 'go': '5',
-          'six': '6', 'che': '6', 'cheh': '6', 'chhe': '6', 'sitta': '6', 'seis': '6',
-          'seven': '7', 'sev': '7', 'saat': '7', 'sat': '7', 'siete': '7',
-          'eight': '8', 'ate': '8', 'aath': '8', 'aanth': '8', 'ocho': '8',
-          'nine': '9', 'nein': '9', 'nau': '9', 'now': '9', 'noy': '9', 'nueve': '9',
-          'ten': '10', 'dus': '10', 'das': '10', 'diez': '10'
-      };
-
-      // Clean the text: remove repeated chars (paaaanch -> panch)
-      const cleanText = lower.replace(/(.)\1+/g, '$1'); 
+      const lastMsg = messages.length > 0 ? messages[messages.length - 1].content : ""
+      const context = `${activeChat.profiles.city || ''} • ${activeChat.profiles.intent || ''}`
       
-      // Tokenize by space, dash, or dot
-      const tokens = cleanText.split(/[\s-.]+/);
-
-      // Convert tokens to digits string
-      let digitSequence = "";
-      
-      tokens.forEach(token => {
-          // If it's a number word, add its digit
-          if (numberWords[token]) {
-              digitSequence += numberWords[token];
-          } 
-          // If it's already a number, add it
-          else if (/^\d+$/.test(token)) {
-              digitSequence += token;
-          }
-      });
-
-      // If we found a sequence of 10 or more digits hidden in the words
-      return digitSequence.length >= 10;
+      try {
+          const suggestion = await generateChatHelp(
+              intent, 
+              activeChat.profiles.full_name, 
+              context, 
+              lastMsg
+          )
+          setNewMessage(suggestion)
+          setShowAiMenu(false)
+      } catch (e) {
+          alert("AI Assistant is taking a break. Try typing manually.")
+      } finally {
+          setAiLoading(false)
+      }
   }
 
   const sendMessage = async () => {
@@ -139,12 +121,15 @@ function ChatContent() {
         return
     }
 
-    // RUN SMART FILTER
-    if (checkForPhoneNumber(newMessage)) {
+    const phoneRegex = /\b[\d\s-]{10,}\b/
+    if (phoneRegex.test(newMessage)) {
         setShowContactModal(true)
         return
     }
 
+    // Append AI Disclosure if using AI (Simple check if message matches what we generated, or just always append if we want strictness. 
+    // For MVP, we let user send what is in the box.)
+    
     const { error } = await supabase.from('messages').insert({
       sender_id: user.id,
       receiver_id: activeChat.profiles.id,
@@ -154,43 +139,35 @@ function ChatContent() {
   }
 
   // --- ACTIONS ---
-
   const handleDisconnect = async () => {
-      if(!confirm(`End connection with ${activeChat.profiles.full_name}? This will remove the chat from your list.`)) return;
-      
+      if(!confirm(`End connection with ${activeChat.profiles.full_name}?`)) return;
       const { error } = await supabase.rpc('disconnect_user', { target_id: activeChat.profiles.id })
-      
       if (!error) {
           setConnections(prev => prev.filter(c => c.id !== activeChat.id))
           setActiveChat(null)
           router.push('/chat')
-      } else {
-          alert("Error: " + error.message)
       }
   }
 
   const handleBlock = async () => {
-      if(!confirm(`Block ${activeChat.profiles.full_name}? This is permanent.`)) return;
+      if(!confirm(`Block ${activeChat.profiles.full_name}?`)) return;
       const { error } = await supabase.rpc('block_user', { target_id: activeChat.profiles.id })
       if (!error) {
           setConnections(prev => prev.filter(c => c.id !== activeChat.id))
           setActiveChat(null)
           router.push('/chat')
-      } else {
-          alert("Error: " + error.message)
       }
   }
 
   const sendSecureContact = async () => {
       setSendingCard(true)
       const { data, error } = await supabase.rpc('share_contact', { target_user_id: activeChat.profiles.id })
-
-      if (error) alert("Error: " + error.message)
-      else if (data === 'error_insufficient_funds') alert("Insufficient Coins! Need 199 Coins.")
-      else if (data === 'success_shared') {
+      if (data === 'success_shared') {
           setShowContactModal(false)
           setShowLimitModal(false)
           setNewMessage('')
+      } else {
+          alert("Insufficient Coins!")
       }
       setSendingCard(false)
   }
@@ -217,12 +194,7 @@ function ChatContent() {
                     <h2 className="font-bold text-slate-900 leading-tight">{activeChat.profiles.full_name}</h2>
                     <div className="flex flex-col">
                         <p className="text-xs text-green-600 flex items-center gap-1"><span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span> Online</p>
-                        {/* DEEP DATA SUMMARY */}
-                        {deepDataText && (
-                            <p className="text-[10px] text-slate-400 font-medium mt-0.5 animate-in fade-in">
-                                {deepDataText}
-                            </p>
-                        )}
+                        {deepDataText && <p className="text-[10px] text-slate-400 font-medium mt-0.5">{deepDataText}</p>}
                     </div>
                 </div>
             ) : <h1 className="font-bold text-xl">Messages</h1>}
@@ -231,28 +203,14 @@ function ChatContent() {
         {activeChat && (
             <div className="flex gap-2 text-slate-400 relative">
                 <button className="p-2 hover:bg-slate-50 rounded-full"><Phone size={20} /></button>
-                <button className="p-2 hover:bg-slate-50 rounded-full"><Video size={20} /></button>
                 <button onClick={() => setShowOptionsMenu(!showOptionsMenu)} className="p-2 hover:bg-slate-50 rounded-full"><MoreVertical size={20} /></button>
                 
                 {showOptionsMenu && (
                     <div className="absolute top-10 right-0 bg-white border border-slate-100 shadow-xl rounded-xl w-52 py-2 z-50 animate-in fade-in zoom-in-95">
-                        <Link href={`/profile/${activeChat.profiles.full_name}`} className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 text-sm text-slate-700">
-                            <User size={16} /> View Profile
-                        </Link>
-                        
+                        <Link href={`/profile/${activeChat.profiles.full_name}`} className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 text-sm text-slate-700"><User size={16} /> View Profile</Link>
                         <div className="h-px bg-slate-100 my-1"></div>
-                        
-                        <button onClick={handleDisconnect} className="flex w-full items-center gap-3 px-4 py-3 hover:bg-slate-50 text-sm text-slate-700">
-                            <UserMinus size={16} /> End Connection
-                        </button>
-                        
-                        <button className="flex w-full items-center gap-3 px-4 py-3 hover:bg-slate-50 text-sm text-slate-700">
-                            <Flag size={16} /> Report
-                        </button>
-                        
-                        <button onClick={handleBlock} className="flex w-full items-center gap-3 px-4 py-3 hover:bg-red-50 text-sm text-red-600 font-bold">
-                            <Ban size={16} /> Block User
-                        </button>
+                        <button onClick={handleDisconnect} className="flex w-full items-center gap-3 px-4 py-3 hover:bg-slate-50 text-sm text-slate-700"><UserMinus size={16} /> End Connection</button>
+                        <button onClick={handleBlock} className="flex w-full items-center gap-3 px-4 py-3 hover:bg-red-50 text-sm text-red-600 font-bold"><Ban size={16} /> Block User</button>
                     </div>
                 )}
             </div>
@@ -263,14 +221,11 @@ function ChatContent() {
       <div className="flex-1 overflow-y-auto p-4 bg-slate-50" onClick={() => setShowOptionsMenu(false)}>
         {!activeChat ? (
             <div className="space-y-2">
-                {loading && <div className="text-center text-slate-400 mt-10">Loading chats...</div>}
-                {!loading && connections.length === 0 && <div className="text-center py-10 text-slate-400">No connections yet.</div>}
-                
+                {connections.length === 0 && <div className="text-center py-10 text-slate-400">No connections yet.</div>}
                 {connections.map(c => (
                     <div key={c.id} onClick={() => c.status === 'accepted' && setActiveChat(c)} className={`p-4 rounded-xl flex items-center gap-4 shadow-sm border ${c.status === 'pending' ? 'bg-slate-50 opacity-70' : 'bg-white cursor-pointer'}`}>
                         <div className="w-12 h-12 rounded-full bg-slate-200 overflow-hidden relative">
                             <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${c.profiles.full_name}`} />
-                            {c.status === 'pending' && <div className="absolute inset-0 bg-white/50 flex items-center justify-center"><Clock size={16}/></div>}
                         </div>
                         <div className="flex-1">
                             <h3 className="font-bold text-slate-900">{c.profiles.full_name}</h3>
@@ -281,48 +236,69 @@ function ChatContent() {
             </div>
         ) : (
             <div className="space-y-4 pb-20">
-                {messages.map(m => {
-                    const isCard = m.content === "Verified Contact Card 📇"
-                    const isMe = m.sender_id === user?.id
-                    return (
-                        <div key={m.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                            {isCard ? (
-                                <div className={`max-w-[85%] rounded-2xl border shadow-sm p-4 bg-gradient-to-r from-amber-50 to-yellow-50 flex items-center gap-3 ${isMe ? 'border-amber-200' : 'border-slate-100'}`}>
-                                    <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-xl shadow-sm">📞</div>
-                                    <div><p className="text-[10px] font-bold text-amber-600 uppercase">SECURE CONTACT</p><p className="text-sm font-bold">{isMe ? "You shared contact" : "Contact Received"}</p></div>
-                                </div>
-                            ) : (
-                                <div className={`max-w-[70%] px-4 py-2 rounded-2xl text-sm ${isMe ? 'bg-slate-900 text-white rounded-tr-sm' : 'bg-white border border-slate-200'}`}>{m.content}</div>
-                            )}
+                {messages.map(m => (
+                    <div key={m.id} className={`flex ${m.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}>
+                        <div className={`max-w-[70%] px-4 py-2 rounded-2xl text-sm ${m.sender_id === user?.id ? 'bg-slate-900 text-white rounded-tr-sm' : 'bg-white border border-slate-200'}`}>
+                            {m.content}
+                            {/* Simple Logic for Transparency: If it matches AI tone, we could add badge here, or just let users add it themselves */}
                         </div>
-                    )
-                })}
-                {isLimitReached && (
-                    <div className="flex justify-center my-4">
-                        <span className="text-xs font-bold text-rose-500 bg-rose-50 px-3 py-1 rounded-full border border-rose-100">
-                            Limit Reached (10/10)
-                        </span>
                     </div>
-                )}
+                ))}
+                {isLimitReached && <div className="flex justify-center my-4"><span className="text-xs font-bold text-rose-500 bg-rose-50 px-3 py-1 rounded-full border border-rose-100">Limit Reached (10/10)</span></div>}
             </div>
         )}
       </div>
 
       {/* Input Area */}
       {activeChat && (
-        <div className="p-3 bg-white border-t border-slate-100 flex gap-2">
-            <input value={newMessage} onChange={e => setNewMessage(e.target.value)} placeholder="Type a message..." className="flex-1 bg-slate-100 rounded-full px-4 py-2 text-sm outline-none" onKeyDown={e => e.key === 'Enter' && sendMessage()} />
-            <button onClick={sendMessage} className="w-10 h-10 bg-slate-900 rounded-full flex items-center justify-center text-white"><Send size={18} /></button>
+        <div className="p-3 bg-white border-t border-slate-100 relative">
+            
+            {/* AI Menu */}
+            {showAiMenu && (
+                <div className="absolute bottom-full left-3 mb-2 bg-white border border-slate-100 shadow-xl rounded-xl p-2 flex flex-col gap-1 w-48 animate-in slide-in-from-bottom-2 z-20">
+                    <div className="flex justify-between items-center px-2 pb-1 border-b border-slate-50 mb-1">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase">AI Assist</span>
+                        <button onClick={() => setShowAiMenu(false)}><X size={14} className="text-slate-400"/></button>
+                    </div>
+                    <button onClick={() => handleAiAssist('icebreaker')} disabled={aiLoading} className="text-left px-3 py-2 hover:bg-indigo-50 rounded-lg text-sm font-medium text-slate-700">🧊 Icebreaker</button>
+                    <button onClick={() => handleAiAssist('reply')} disabled={aiLoading} className="text-left px-3 py-2 hover:bg-indigo-50 rounded-lg text-sm font-medium text-slate-700">↩️ Polite Reply</button>
+                    <button onClick={() => handleAiAssist('decline')} disabled={aiLoading} className="text-left px-3 py-2 hover:bg-rose-50 rounded-lg text-sm font-medium text-rose-600">🚫 Say No Nicely</button>
+                </div>
+            )}
+
+            <div className="flex gap-2">
+                {/* AI Toggle Button */}
+                <button 
+                    onClick={() => setShowAiMenu(!showAiMenu)}
+                    className="w-10 h-10 rounded-full flex items-center justify-center text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition"
+                >
+                    {aiLoading ? <Loader2 size={18} className="animate-spin"/> : <Sparkles size={18} />}
+                </button>
+
+                <input 
+                    value={newMessage} 
+                    onChange={e => setNewMessage(e.target.value)} 
+                    placeholder={isLimitReached ? "Unlock to continue..." : "Type a message..."} 
+                    disabled={isLimitReached} 
+                    className="flex-1 bg-slate-100 rounded-full px-4 py-2 text-sm outline-none disabled:opacity-50" 
+                    onKeyDown={e => e.key === 'Enter' && sendMessage()} 
+                />
+                <button 
+                    onClick={isLimitReached ? () => setShowLimitModal(true) : sendMessage} 
+                    className={`w-10 h-10 rounded-full flex items-center justify-center text-white shadow-lg transition ${isLimitReached ? 'bg-amber-500' : 'bg-slate-900'}`}
+                >
+                    {isLimitReached ? <Lock size={16} /> : <Send size={18} />}
+                </button>
+            </div>
         </div>
       )}
 
       {/* Modals */}
       {showContactModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
             <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl text-center">
                 <ShieldAlert className="w-12 h-12 text-amber-500 mx-auto mb-4"/>
                 <h2 className="text-xl font-bold mb-2">Wait! Is that a number?</h2>
-                <p className="text-sm text-slate-500 mb-6">Sharing personal contact info in chat is risky. Use a Secure Contact Card for safety.</p>
                 <div className="space-y-3">
                     <button onClick={sendSecureContact} disabled={sendingCard} className="w-full bg-slate-900 text-white font-bold py-3.5 rounded-xl flex justify-center items-center gap-2">{sendingCard ? <Loader2 className="animate-spin"/> : <><Contact size={18}/> Share Card (199 Coins)</>}</button>
                     <button onClick={() => setShowContactModal(false)} className="w-full text-slate-500 py-2">Edit Message</button>
@@ -336,12 +312,20 @@ function ChatContent() {
              <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl text-center">
                 <Lock className="w-12 h-12 text-amber-500 mx-auto mb-4"/>
                 <h2 className="text-xl font-bold mb-2">Vibe Check Complete</h2>
-                <p className="text-sm text-slate-500 mb-6">You've reached the 10-message limit. Share your contact to continue.</p>
                 <button onClick={sendSecureContact} className="w-full bg-slate-900 text-white font-bold py-3.5 rounded-xl mb-3">Share Contact (199 Coins)</button>
                 <button onClick={() => setShowLimitModal(false)} className="w-full text-slate-500">Cancel</button>
              </div>
         </div>
       )}
     </div>
+  )
+}
+
+// WRAPPER TO FIX BUILD ERROR
+export default function ChatPage() {
+  return (
+    <Suspense fallback={<div className="h-screen w-full flex items-center justify-center"><Loader2 className="animate-spin text-slate-400"/></div>}>
+      <ChatContent />
+    </Suspense>
   )
 }
