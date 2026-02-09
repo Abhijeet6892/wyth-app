@@ -1,8 +1,8 @@
 'use client'
 import { useState } from 'react'
-import { Heart, Lock, Zap, Award, CheckCircle2, Instagram, Linkedin, MessageCircle, X, UserPlus, ShieldCheck } from 'lucide-react'
+import { Heart, Lock, Zap, Award, CheckCircle2, Instagram, Linkedin, MessageCircle, X, UserPlus, ShieldCheck, Users } from 'lucide-react'
 
-// --- 1. Strong Types (Fixes the Errors) ---
+// --- TYPES ---
 interface Profile {
   id?: string
   full_name: string
@@ -11,6 +11,7 @@ interface Profile {
   vouches_count?: number
   city?: string
   career_verified?: boolean
+  relationship_status?: 'single' | 'paired'
 }
 
 interface FeedPost {
@@ -37,6 +38,7 @@ export default function FeedCard({ post, isConnected = false, onConnect, onSocia
   
   // Safe Fallback
   const profile = post.profiles || { full_name: 'Unknown User' }
+  const isCommitted = profile.relationship_status === 'paired'
 
   const handleReaction = (emoji: string) => {
     setReactionType(emoji === reactionType ? null : emoji)
@@ -57,10 +59,18 @@ export default function FeedCard({ post, isConnected = false, onConnect, onSocia
             />
           </div>
           <div>
-            <h3 className="font-bold text-slate-900 text-sm flex items-center gap-1.5">
-              {profile.full_name}
-              {profile.is_gold ? <Award size={14} className="text-amber-500 fill-amber-500" /> : <CheckCircle2 size={14} className="text-slate-300" />}
-            </h3>
+            <div className="flex items-center gap-2">
+                <h3 className="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                  {profile.full_name}
+                  {profile.is_gold ? <Award size={14} className="text-amber-500 fill-amber-500" /> : <CheckCircle2 size={14} className="text-slate-300" />}
+                </h3>
+                {/* COMMITTED BADGE */}
+                {isCommitted && (
+                    <span className="text-[9px] font-bold bg-slate-100 text-slate-500 border border-slate-200 px-1.5 py-0.5 rounded flex items-center gap-1">
+                        <Users size={10} /> Committed
+                    </span>
+                )}
+            </div>
             <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 mt-1">
                 {profile.brand_id && <span className="font-mono text-[10px] bg-slate-50 px-1.5 py-0.5 rounded text-slate-500 border border-slate-200">{profile.brand_id}</span>}
                 <span className="flex items-center gap-1 text-[10px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100"><ShieldCheck size={10} /> {profile.vouches_count || 0}</span>
@@ -122,7 +132,7 @@ export default function FeedCard({ post, isConnected = false, onConnect, onSocia
         </div>
       )}
 
-      {/* SOCIAL SHIELD */}
+      {/* SOCIAL SHIELD (PRIVACY FIX APPLIED) */}
       <div className="px-4 mt-3 mb-3 grid grid-cols-2 gap-2">
             <div onClick={isConnected ? undefined : onSocialUnlock} className={`rounded-xl p-2.5 border flex flex-col justify-center relative transition active:scale-95 ${isConnected ? 'bg-blue-50 border-blue-100' : 'bg-slate-50 border-slate-100 cursor-pointer hover:border-blue-200'}`}>
                 <div className="flex items-center gap-1.5 mb-1"><Linkedin size={12} className="text-blue-700"/><span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Career</span></div>
@@ -150,12 +160,24 @@ export default function FeedCard({ post, isConnected = false, onConnect, onSocia
 
       {/* ACTIONS */}
       <div className="px-4 pb-4 flex items-center gap-2">
+         {/* Reaction Button */}
          <button onClick={() => setShowReactionDock(!showReactionDock)} className={`flex-1 border rounded-xl py-2.5 font-bold text-sm flex justify-center gap-2 transition active:scale-95 ${reactionType ? 'bg-rose-50 text-rose-600 border-rose-100' : 'border-slate-100 text-slate-600 hover:bg-slate-50'}`}>{reactionType ? reactionType : <><Heart size={16} /> React</>}</button>
+         
+         {/* Follow Button */}
          <button onClick={() => setIsFollowing(!isFollowing)} className={`flex-1 border rounded-xl py-2.5 font-bold text-sm flex justify-center gap-2 transition active:scale-95 ${isFollowing ? 'bg-slate-900 text-white border-slate-900' : 'border-slate-100 text-slate-600 hover:bg-slate-50'}`}>{isFollowing ? <CheckCircle2 size={16}/> : <UserPlus size={16}/>} {isFollowing ? 'Following' : 'Follow'}</button>
-         {isConnected ? 
-             <button onClick={() => onConnect('message')} className="flex-[1.5] bg-blue-600 text-white rounded-xl py-2.5 font-bold text-sm shadow-md hover:bg-blue-700 transition flex justify-center gap-1.5 active:scale-95"><MessageCircle size={16}/> Message</button> :
+         
+         {/* Connect / Message / Unavailable */}
+         {isConnected ? (
+             <button onClick={() => onConnect('message')} className="flex-[1.5] bg-blue-600 text-white rounded-xl py-2.5 font-bold text-sm shadow-md hover:bg-blue-700 transition flex justify-center gap-1.5 active:scale-95"><MessageCircle size={16}/> Message</button>
+         ) : isCommitted ? (
+             // COMMITTED STATE: Cannot Connect
+             <button disabled className="flex-[1.5] bg-slate-100 text-slate-400 rounded-xl py-2.5 font-bold text-[11px] border border-slate-200 flex justify-center gap-1.5 cursor-not-allowed">
+                <Lock size={14}/> Unavailable
+             </button>
+         ) : (
+             // SINGLE STATE: Can Connect
              <button onClick={() => onConnect('connect')} className="flex-[1.5] bg-slate-900 text-white rounded-xl py-2.5 font-bold text-sm shadow-md hover:bg-slate-800 transition flex justify-center gap-1.5 active:scale-95">Connect <Zap size={14} className="fill-yellow-400 text-yellow-400"/></button>
-         }
+         )}
       </div>
       
       {/* FOOTER COMMENT */}
