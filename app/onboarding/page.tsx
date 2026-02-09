@@ -1,13 +1,21 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../../utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import { 
   ArrowLeft, ArrowRight, Loader2, Sparkles, 
-  Shield, MapPin, DollarSign, Lock, X, Camera, Heart, Gem, Zap, CheckCircle 
+  Shield, MapPin, DollarSign, Lock, X, Phone, CheckCircle, Zap
 } from 'lucide-react'
 import AvatarUpload from '../../components/AvatarUpload'
 import { polishBioMock, type BioTone } from '../../lib/ai/profilePolisher'
+
+// --- CONSTANTS ---
+const KNOWN_CITIES = [
+  "Mumbai", "Delhi NCR", "Bangalore", "Hyderabad", "Pune", 
+  "Chennai", "Kolkata", "Ahmedabad", "Jaipur", "Chandigarh", 
+  "Lucknow", "Indore", "Dubai", "London", "New York", 
+  "Singapore", "Toronto"
+]
 
 // --- TYPES ---
 type ProfileSignals = {
@@ -18,17 +26,28 @@ type ProfileSignals = {
 
 type ProfileData = {
   full_name: string
-  city: string
+  phone: string
   gender: string
-  intent: 'exploring' | 'dating_marriage' | 'ready_marriage'
+  intent: string
   avatar_url: string | null
+  
+  // City Strict Mode
+  city_display: string
+  city_normalized: string
+  city_category: 'known' | 'other' | ''
+
+  // Career
   jobTitle: string
   company: string
   industry: string
   careerGhostMode: boolean
+
+  // Lifestyle
   diet: string
   drink: string
   smoke: string
+
+  // Signals & Bio
   signals: ProfileSignals
   bio: string
 }
@@ -36,12 +55,15 @@ type ProfileData = {
 export default function OnboardingEngine() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
-  const [currentStepIndex, setCurrentStepIndex] = useState(0) // 0-based index
-  
+  const [step, setStep] = useState(1)
+  const TOTAL_STEPS = 8 
+
   // Global State
   const [data, setData] = useState<ProfileData>({
-    full_name: '', city: '', gender: '', intent: 'exploring', // Default safest option
+    full_name: '', phone: '', gender: '', intent: 'dating_marriage',
     avatar_url: null,
+    // City defaults
+    city_display: '', city_normalized: '', city_category: '',
     jobTitle: '', company: '', industry: '', careerGhostMode: true,
     diet: '', drink: '', smoke: '',
     signals: { incomeSignal: { min: 12, max: 20 }, religionSignal: '', familyTypeSignal: '' },
@@ -59,140 +81,109 @@ export default function OnboardingEngine() {
     getUser()
   }, [])
 
-  // --- DYNAMIC PATH LOGIC (The Masterstroke) ---
-  const getStepsForIntent = (intent: string) => {
-    const common = ['intent', 'basics', 'photo']
-    
-    if (intent === 'exploring') {
-        // Lightest path: Just Identity & Vibe
-        return [...common, 'welcome']
-    } 
-    else if (intent === 'dating_marriage') {
-        // Medium path: Add Lifestyle & Career
-        return [...common, 'lifestyle', 'career', 'welcome']
-    } 
-    else {
-        // 'ready_marriage' -> Full path: Add Deep Data & Bio
-        return [...common, 'lifestyle', 'career', 'private', 'ai_bio', 'welcome']
-    }
-  }
+  // --- SAVE LOGIC ---
+  const saveAndNext = async () => {
+    if (!user) return
+    setLoading(true)
 
-  // Calculate steps based on current intent selection
-  const steps = getStepsForIntent(data.intent)
-  const currentStepName = steps[currentStepIndex]
-  const isLastStep = currentStepIndex === steps.length - 1
-
-  // --- NAVIGATION & SAVING ---
-  const handleNext = async () => {
-      setLoading(true)
-      try {
-        // 1. Validate Current Step
-        if (currentStepName === 'basics') {
-            if (!data.full_name || !data.city || !data.gender) throw new Error("Please fill in your identity details.")
+    try {
+        // Validation Guards
+        if (step === 2) {
+            if (!data.full_name || !data.gender) throw new Error("Please fill in your identity details.")
+            if (!data.city_display || !data.city_category) throw new Error("Please select a valid city from the list.")
+            if (!data.phone || data.phone.length < 10) throw new Error("Please enter a valid phone number.")
         }
-        if (currentStepName === 'photo') {
-            // Soft requirement: We can allow skipping if exploring, but for now let's keep it required
-            if (!data.avatar_url) throw new Error("Please upload a photo to continue.")
-        }
+        if (step === 3 && !data.avatar_url) throw new Error("Please upload a photo to continue.")
 
-        // 2. Save Data (Incremental)
-        if (user) {
-            // Only update fields relevant to the current/passed steps
+        // Database Updates
+        let error = null
+        if ([1, 2, 3, 5, 6, 7].includes(step)) {
             const updates: any = {
                 id: user.id,
                 updated_at: new Date(),
-                intent: data.intent, // Always save intent
-                // Defaults
-                slots_limit: 3, 
-                is_gold: false, 
-                wallet_balance: 0
+                slots_limit: 3, is_gold: false, wallet_balance: 0 
             }
 
-            // Map data to DB columns based on what we have collected so far
-            if (currentStepIndex >= steps.indexOf('basics')) {
+            if (step === 1) updates.intent = data.intent
+            if (step === 2) {
                 updates.full_name = data.full_name
-                updates.city = data.city
+                updates.phone = data.phone 
                 updates.gender = data.gender
+                // Strict City Saving
+                updates.city = data.city_display // Legacy support
+                updates.city_display = data.city_display
+                updates.city_normalized = data.city_normalized
+                updates.city_category = data.city_category
             }
-            if (currentStepIndex >= steps.indexOf('photo')) updates.avatar_url = data.avatar_url
-            if (currentStepIndex >= steps.indexOf('lifestyle')) updates.lifestyle = { diet: data.diet, drink: data.drink, smoke: data.smoke }
-            if (currentStepIndex >= steps.indexOf('private')) updates.profile_signals = data.signals
+            if (step === 3) updates.avatar_url = data.avatar_url
+            if (step === 5) updates.lifestyle = { diet: data.diet, drink: data.drink, smoke: data.smoke }
+            if (step === 6) updates.profile_signals = data.signals
+            if (step === 7) { /* bio saved later if needed */ }
 
-            const { error: pError } = await supabase.from('profiles').upsert(updates)
-            if (pError) throw pError
-
-            // Separate Career Table update
-            if (currentStepName === 'career') {
-                 await supabase.from('career_data').upsert({
-                    user_id: user.id,
-                    role: data.jobTitle,
-                    industry: data.industry,
-                    company_real_name: data.company,
-                    company_display_name: data.careerGhostMode ? "Top Tier Firm" : data.company,
-                })
-            }
+            const { error: err } = await supabase.from('profiles').upsert(updates)
+            error = err
         }
 
-        // 3. Move Next or Finish
-        if (isLastStep) {
-            router.push('/')
-        } else {
-            setCurrentStepIndex(prev => prev + 1)
+        if (step === 4) {
+            const { error: err } = await supabase.from('career_data').upsert({
+                user_id: user.id,
+                role: data.jobTitle,
+                industry: data.industry,
+                company_real_name: data.company,
+                company_display_name: data.careerGhostMode ? "Top Tier Firm" : data.company,
+            })
+            error = err
         }
 
-      } catch (error: any) {
-          alert(error.message)
-      } finally {
-          setLoading(false)
-      }
+        if (error) throw error
+
+        if (step < TOTAL_STEPS) setStep(s => s + 1)
+        else router.push('/')
+
+    } catch (error: any) {
+        alert(error.message || "Error saving data.")
+    } finally {
+        setLoading(false)
+    }
   }
 
-  const handleBack = () => setCurrentStepIndex(prev => Math.max(0, prev - 1))
-  
+  const back = () => setStep(s => Math.max(s - 1, 1))
   const update = (field: keyof ProfileData, value: any) => setData(prev => ({ ...prev, [field]: value }))
-  const updateSignal = (field: keyof ProfileSignals, value: any) => setData(prev => ({ ...prev, signals: { ...prev.signals, [field]: value } }))
+  
+  const updateSignal = (field: keyof ProfileSignals, value: any) => {
+    setData(prev => ({ ...prev, signals: { ...prev.signals, [field]: value } }))
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center py-6">
       <div className="w-full max-w-md bg-white min-h-[80vh] rounded-3xl shadow-xl overflow-hidden flex flex-col relative">
         
         {/* HEADER */}
-        {currentStepName !== 'welcome' && (
+        {step < TOTAL_STEPS && (
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-white/80 backdrop-blur-sm sticky top-0 z-20">
-                {currentStepIndex > 0 ? (
-                    <button onClick={handleBack} className="p-2 -ml-2 hover:bg-slate-50 rounded-full"><ArrowLeft size={20}/></button>
-                ) : <div className="w-8"></div>}
-                
-                <div className="flex gap-1">
-                    {steps.map((_, i) => (
-                        <div key={i} className={`h-1.5 w-6 rounded-full transition-all duration-300 ${i <= currentStepIndex ? 'bg-slate-900' : 'bg-slate-100'}`} />
-                    ))}
-                </div>
+                {step > 1 ? <button onClick={back} className="p-2 -ml-2 hover:bg-slate-50 rounded-full"><ArrowLeft size={20}/></button> : <div className="w-8"></div>}
+                <div className="flex gap-1">{[...Array(TOTAL_STEPS)].map((_, i) => (<div key={i} className={`h-1.5 w-6 rounded-full transition-all duration-300 ${i + 1 <= step ? 'bg-slate-900' : 'bg-slate-100'}`} />))}</div>
                 <div className="w-8"></div>
             </div>
         )}
 
-        {/* STAGE RENDERER */}
+        {/* STAGES */}
         <div className="flex-1 p-6 overflow-y-auto">
-            {currentStepName === 'intent' && <StageIntent data={data} update={update} />}
-            {currentStepName === 'basics' && <StageBasics data={data} update={update} />}
-            {currentStepName === 'photo' && <StagePhotos data={data} update={update} />}
-            {currentStepName === 'career' && <StageCareer data={data} update={update} />}
-            {currentStepName === 'lifestyle' && <StageLifestyle data={data} update={update} />}
-            {currentStepName === 'private' && <StagePrivateSignals data={data} updateSignal={updateSignal} />}
-            {currentStepName === 'ai_bio' && <StageAIBio data={data} update={update} />}
-            {currentStepName === 'welcome' && <StageWelcome data={data} />}
+            {step === 1 && <StageIntent data={data} update={update} />}
+            {step === 2 && <StageBasics data={data} update={update} />}
+            {step === 3 && <StagePhotos data={data} update={update} />}
+            {step === 4 && <StageCareer data={data} update={update} />}
+            {step === 5 && <StageLifestyle data={data} update={update} />}
+            {step === 6 && <StagePrivateSignals data={data} updateSignal={updateSignal} />}
+            {step === 7 && <StageAIBio data={data} update={update} />}
+            {step === 8 && <StageWelcome data={data} />}
         </div>
 
         {/* FOOTER */}
         <div className="p-6 border-t border-slate-100 bg-white sticky bottom-0 z-20">
-            <button 
-                onClick={handleNext}
-                disabled={loading}
-                className="w-full bg-slate-900 text-white font-bold h-14 rounded-2xl flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-70"
-            >
-                {loading ? <Loader2 className="animate-spin"/> : isLastStep ? "Enter WYTH" : "Continue"}
-                {!loading && !isLastStep && <ArrowRight size={20} />}
+            <button onClick={saveAndNext} disabled={loading} className="w-full bg-slate-900 text-white font-bold h-14 rounded-2xl flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-70">
+                {loading ? <Loader2 className="animate-spin"/> : step === TOTAL_STEPS ? "Enter WYTH" : "Save & Continue"}
+                {!loading && step !== TOTAL_STEPS && <ArrowRight size={20} />}
             </button>
         </div>
       </div>
@@ -200,38 +191,107 @@ export default function OnboardingEngine() {
   )
 }
 
-// --- SUB-COMPONENTS (Reusing previous logic) ---
+// --- SUB-COMPONENTS ---
 
 function StageIntent({ data, update }: any) {
-  const options = [
-    { id: 'exploring', label: 'Exploring Seriously', desc: 'Intentional, but early stage.' },
-    { id: 'dating_marriage', label: 'Dating for Marriage', desc: 'Looking to build something real.' },
-    { id: 'ready_marriage', label: 'Ready for Marriage', desc: 'Clear intent. 1-2 year timeline.' },
-  ]
+  const options = [{ id: 'exploring', label: 'Exploring Seriously', desc: 'Intentional, but early stage.' }, { id: 'dating_marriage', label: 'Dating for Marriage', desc: 'Looking to build something real.' }, { id: 'ready_marriage', label: 'Ready for Marriage', desc: 'Clear intent. 1-2 year timeline.' }]
   return (
     <div className="animate-in slide-in-from-right duration-300">
       <h2 className="text-2xl font-serif font-bold text-slate-900 mb-2">Welcome to WYTH</h2>
       <p className="text-slate-500 mb-8">Let's find your vibe. What are you looking for?</p>
-      <div className="space-y-3">
-        {options.map(opt => (
-          <button key={opt.id} onClick={() => update('intent', opt.id)} className={`w-full p-5 rounded-2xl border-2 text-left transition-all duration-200 ${data.intent === opt.id ? 'border-slate-900 bg-slate-50' : 'border-slate-100 hover:border-slate-300'}`}>
-            <div className="font-bold text-slate-900">{opt.label}</div>
-            <div className="text-sm text-slate-500">{opt.desc}</div>
-          </button>
-        ))}
-      </div>
-      <p className="text-xs text-center text-slate-400 mt-6">This helps us filter matches, not label you.</p>
+      <div className="space-y-3">{options.map(opt => (<button key={opt.id} onClick={() => update('intent', opt.id)} className={`w-full p-5 rounded-2xl border-2 text-left transition-all duration-200 ${data.intent === opt.id ? 'border-slate-900 bg-slate-50' : 'border-slate-100 hover:border-slate-300'}`}><div className="font-bold text-slate-900">{opt.label}</div><div className="text-sm text-slate-500">{opt.desc}</div></button>))}</div>
     </div>
   )
 }
 
+// --- UPDATED: STRICT CITY LOGIC ---
 function StageBasics({ data, update }: any) {
+  // Initialize with existing data if present
+  const [cityQuery, setCityQuery] = useState(data.city_display || '')
+  const [showCityList, setShowCityList] = useState(false)
+  const wrapperRef = useRef<HTMLDivElement>(null)
+
+  // Filter Logic
+  const filteredCities = KNOWN_CITIES.filter(c => c.toLowerCase().includes(cityQuery.toLowerCase()))
+
+  const selectCity = (city: string, type: 'known' | 'other') => {
+      if (type === 'known') {
+          update('city_display', city)
+          update('city_normalized', city.toLowerCase())
+          update('city_category', 'known')
+          setCityQuery(city)
+      } else {
+          // Other logic
+          const cleanInput = cityQuery.trim()
+          update('city_display', `${cleanInput} (Other)`)
+          update('city_normalized', `${cleanInput.toLowerCase()}_other`)
+          update('city_category', 'other')
+          setCityQuery(`${cleanInput} (Other)`)
+      }
+      setShowCityList(false)
+  }
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    function handleClickOutside(event: any) {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
+        setShowCityList(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
+
   return (
     <div className="animate-in slide-in-from-right duration-300 space-y-6">
       <div><h2 className="text-2xl font-serif font-bold text-slate-900 mb-2">The Basics</h2><p className="text-slate-500">Identity check.</p></div>
-      <div><label className="text-xs font-bold text-slate-400 uppercase">Full Name</label><input value={data.full_name} onChange={e => update('full_name', e.target.value)} className="w-full p-4 rounded-xl bg-slate-50 border-none mt-2 font-medium" placeholder="How you'd like to be known" /></div>
-      <div><label className="text-xs font-bold text-slate-400 uppercase">Current City</label><div className="relative"><MapPin size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"/><input value={data.city} onChange={e => update('city', e.target.value)} className="w-full p-4 pl-12 rounded-xl bg-slate-50 border-none mt-2 font-medium" placeholder="Where are you based?" /></div></div>
-      <div><label className="text-xs font-bold text-slate-400 uppercase">Gender</label><div className="flex gap-2 mt-2">{['Male', 'Female', 'Other'].map(g => (<button key={g} onClick={() => update('gender', g)} className={`flex-1 py-3 rounded-xl font-medium transition ${data.gender === g ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-500'}`}>{g}</button>))}</div></div>
+      
+      <div>
+          <label className="text-xs font-bold text-slate-400 uppercase">Full Name</label>
+          <input value={data.full_name} onChange={e => update('full_name', e.target.value)} className="w-full p-4 rounded-xl bg-slate-50 border-none mt-2 font-medium" placeholder="e.g. Arjun Kapoor" />
+      </div>
+      
+      <div>
+          <label className="text-xs font-bold text-slate-400 uppercase">Phone Number</label>
+          <div className="relative">
+             <Phone size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"/>
+             <input type="tel" value={data.phone} onChange={e => update('phone', e.target.value.replace(/[^\d+]/g, ''))} className="w-full p-4 pl-12 rounded-xl bg-slate-50 border-none mt-2 font-medium" placeholder="+91 9876543210" />
+          </div>
+      </div>
+
+      {/* SEARCHABLE CITY SELECTOR */}
+      <div ref={wrapperRef} className="relative">
+          <label className="text-xs font-bold text-slate-400 uppercase">Current City</label>
+          <div className="relative mt-2">
+            <MapPin size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"/>
+            <input 
+                value={cityQuery} 
+                onChange={e => { setCityQuery(e.target.value); setShowCityList(true); }}
+                onFocus={() => setShowCityList(true)}
+                className="w-full p-4 pl-12 rounded-xl bg-slate-50 border-none font-medium" 
+                placeholder="Search city..." 
+            />
+          </div>
+          
+          {showCityList && cityQuery && (
+              <div className="absolute z-50 w-full mt-2 bg-white rounded-xl shadow-xl border border-slate-100 max-h-60 overflow-y-auto">
+                  {filteredCities.map(city => (
+                      <div key={city} onClick={() => selectCity(city, 'known')} className="p-3 hover:bg-slate-50 cursor-pointer text-sm font-medium border-b border-slate-50 last:border-none">
+                          {city}
+                      </div>
+                  ))}
+                  <div onClick={() => selectCity(cityQuery, 'other')} className="p-3 hover:bg-blue-50 cursor-pointer text-sm font-bold text-blue-600 border-t border-slate-100">
+                      Use "{cityQuery}" (Other)
+                  </div>
+              </div>
+          )}
+          {data.city_category === 'other' && <p className="text-xs text-amber-600 mt-2">Note: Matches may be fewer in unlisted cities.</p>}
+      </div>
+
+      <div>
+          <label className="text-xs font-bold text-slate-400 uppercase">Gender</label>
+          <div className="flex gap-2 mt-2">{['Male', 'Female', 'Other'].map(g => (<button key={g} onClick={() => update('gender', g)} className={`flex-1 py-3 rounded-xl font-medium transition ${data.gender === g ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-500'}`}>{g}</button>))}</div>
+      </div>
     </div>
   )
 }
@@ -283,6 +343,7 @@ function StagePrivateSignals({ data, updateSignal }: { data: ProfileData, update
       <div className="space-y-4">
         <div className="flex justify-between items-center"><label className="font-bold text-slate-900 flex items-center gap-2"><DollarSign size={18}/> Comfort Range (Income)</label><span className="text-xl font-bold text-slate-900">₹{incomeMin}-{incomeMin + 8}L</span></div>
         <input type="range" min="5" max="100" value={incomeMin} onChange={e => { const val = parseInt(e.target.value); updateSignal('incomeSignal', { min: val, max: val + 8 }) }} className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-slate-900" />
+        <div className="flex justify-between text-xs text-slate-400 font-bold"><span>₹5L</span><span>₹1 Cr+</span></div>
       </div>
       <div className="space-y-4 pt-4 border-t border-slate-100">
         <label className="font-bold text-slate-900">Cultural Background</label>
