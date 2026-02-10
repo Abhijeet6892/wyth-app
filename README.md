@@ -1,36 +1,96 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# WYTH — Early Stage Social & Relationship Product (MVP)
 
-## Getting Started
+WYTH is an early-stage consumer social product being built to explore a specific gap in the modern relationships & intent-driven social space.
 
-First, run the development server:
+The goal of this MVP is not scale, but **learning**:
+- How people express intent
+- How social content + profiles can coexist
+- How discovery, privacy, and commitment can be balanced
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+This repository represents an **active experiment**, not a finished product.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Current Status
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- MVP is live and deployed
+- Core onboarding, feed, profiles, and settings flows exist
+- No real users yet
+- Product logic is still evolving
+- Architecture and database are actively iterated
 
-## Learn More
+This phase is about validating **core product logic**, not growth.
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Tech Stack
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+**Frontend**
+- Next.js (App Router)
+- TypeScript
+- Tailwind CSS
 
-## Deploy on Vercel
+**Backend / Platform**
+- Supabase (Auth, Database, Storage)
+- PostgreSQL (via Supabase)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+**Deployment**
+- Vercel (production hosting)
+- GitHub (source control)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**Development**
+- Cursor (IDE)
+- Local + Vercel preview environments
+
+---
+
+## Project Structure (High Level)
+
+```text
+app/                → Routes, pages, layouts (Next.js App Router)
+components/         → Reusable UI components (FeedCard, Modals, etc.)
+lib/ai/             → AI-related helpers & logic (bio polish, prompts)
+utils/supabase/     → Supabase client & helpers
+types/              → Shared TypeScript types
+public/             → Static assets
+
+**## Database (Supabase)**
+
+- Authentication handled via Supabase Auth
+- User profiles stored in `profiles`
+- Career data stored separately in `career_data`
+- Posts, feed logic, and social interactions stored in related tables
+
+**Database schema is not frozen yet**  
+SQL migrations were applied directly in Supabase during experimentation.
+
+A proper schema and migration history will be documented next.
+
+---
+
+**## Important Notes**
+
+- This project is intentionally not over-engineered
+- Decisions prioritize speed, clarity, and learning
+- Some logic may change or be removed as insights emerge
+- This repository should be treated as an evolving product lab
+
+---
+
+**## Ownership & Intent**
+
+This project is being built by a solo founder exploring:
+
+- Consumer behavior
+- Social product design
+- Intent-based systems
+
+Future collaboration or co-founder involvement will be evaluated after clarity on product direction.
+
+---
+
+**## Disclaimer**
+
+This is **not production-grade software**.
+
+Do not assume scalability, security hardening, or final architecture.
