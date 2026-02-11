@@ -3,14 +3,13 @@
 @tailwind utilities;
 
 :root {
-  --background: #f8fafc; /* Slate-50 */
-  --foreground: #0f172a; /* Slate-900 */
+  --background: #f8fafc;
+  --foreground: #0f172a;
 }
 
 @media (prefers-color-scheme: dark) {
-  /* WYTH is currently designed for Light Mode cleanliness */
   :root {
-    --background: #f8fafc; 
+    --background: #f8fafc;
     --foreground: #0f172a;
   }
 }
@@ -18,26 +17,25 @@
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-  -webkit-font-smoothing: antialiased; /* Makes typography look premium on Mac */
+  -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 /* Hide Scrollbar but keep functionality */
 .scrollbar-hide::-webkit-scrollbar {
-    display: none;
+  display: none;
 }
 .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
-/* The WYTH Brand Gradient (Used in Login & Splash) */
+/* WYTH Brand Gradient */
 .bg-brand-gradient {
-  background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%); 
+  background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
 }
 
-/* Glassmorphism Utility Class */
+/* Glassmorphism */
 .glass-panel {
   background: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(12px);

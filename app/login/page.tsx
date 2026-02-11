@@ -16,7 +16,6 @@ export default function LoginPage() {
 
   const router = useRouter()
 
-  // 1. Check Session on Mount
   useEffect(() => {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession()
@@ -26,165 +25,133 @@ export default function LoginPage() {
     checkSession()
   }, [router])
 
-  // 2. Google Login (Updated with Redirect Logic)
   const handleGoogleLogin = async () => {
     setGoogleLoading(true)
     setErrorMsg('')
-    
-    // Explicitly redirect to the callback route to handle the session exchange properly
     const redirectTo = `${window.location.origin}/auth/callback`
-
     const { error } = await supabase.auth.signInWithOAuth({ 
         provider: 'google',
-        options: {
-            redirectTo: redirectTo,
-            queryParams: {
-                access_type: 'offline',
-                prompt: 'consent',
-            },
-        }
+        options: { redirectTo }
     })
-
     if (error) {
       setErrorMsg(error.message)
       setGoogleLoading(false)
     }
   }
 
-  // 3. Email/Password Auth
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!email || !password) {
-      setErrorMsg('Please enter both email and password.')
-      return
-    }
     setLoading(true)
     setErrorMsg('')
-
     try {
       if (isSignUp) {
         const { error } = await supabase.auth.signUp({ email, password })
         if (error) throw error
-        // On signup, we send them to onboarding logic (Middleware handles the rest)
         router.push('/onboarding')
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password })
         if (error) throw error
-        
         if (data.user) {
-          // Check if profile exists to determine routing
           const { data: profile } = await supabase.from('profiles').select('id').eq('id', data.user.id).maybeSingle()
           router.push(profile ? '/' : '/onboarding')
         }
       }
     } catch (error: any) {
-      setErrorMsg(error.message || 'An authentication error occurred')
+      setErrorMsg(error.message || 'An error occurred')
       setLoading(false)
     }
   }
 
-  if (checkingSession) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <Loader2 className="animate-spin text-slate-300" />
-      </div>
-    )
-  }
+  if (checkingSession) return null
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/30 flex flex-col justify-center px-6 py-12 lg:px-8">
+    <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6">
       <motion.div 
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="sm:mx-auto sm:w-full sm:max-w-md bg-white/70 backdrop-blur-xl border border-white/50 shadow-[0_8px_30px_rgba(0,0,0,0.04)] rounded-[2rem] p-8"
+        className="w-full max-w-[400px] space-y-8"
       >
-        <div className="flex justify-center mb-6">
-          <div className="p-4 bg-slate-900 rounded-2xl shadow-xl shadow-slate-200">
-            <span className="text-2xl font-serif font-bold text-white tracking-tight">WYTH</span>
+        {/* Header Section (ChatGPT Style) */}
+        <div className="text-center space-y-3">
+          <h1 className="text-4xl font-serif font-bold text-slate-900 tracking-tighter">WYTH</h1>
+          <div className="space-y-1 pt-4">
+            <p className="text-slate-500 font-medium tracking-tight">Observe the vibe.</p>
+            <p className="text-slate-500 font-medium tracking-tight">Understand the person.</p>
+            <p className="text-slate-900 font-bold tracking-tight">Then Decide.</p>
           </div>
+          <p className="text-[10px] text-slate-400 uppercase tracking-[0.2em] pt-4 font-bold">
+            A social space for serious intentions.
+          </p>
         </div>
 
-        <h2 className="text-center text-2xl font-bold text-slate-900 tracking-tight">
-          {isSignUp ? 'Join the Vibe' : 'Welcome Back'}
-        </h2>
-        <p className="mt-2 text-center text-sm text-slate-500 font-medium">
-          {isSignUp ? 'Intentional dating starts here.' : 'Continue your journey.'}
-        </p>
-
-        <div className="mt-8 space-y-6">
-          {/* GOOGLE BUTTON */}
+        <div className="space-y-4 pt-6">
+          {/* GOOGLE BUTTON - Iron-Clad Layout */}
           <button
             type="button"
             onClick={handleGoogleLogin}
             disabled={googleLoading || loading}
-            className="flex w-full justify-center items-center gap-3 rounded-xl bg-white px-3 py-3.5 text-sm font-bold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-200 hover:bg-slate-50 transition-all active:scale-[0.98]"
+            className="group relative flex w-full items-center justify-center gap-3 rounded-2xl bg-white border border-slate-200 px-4 py-4 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-all active:scale-[0.98] shadow-sm"
           >
             {googleLoading ? (
               <Loader2 className="animate-spin h-5 w-5 text-slate-400" />
             ) : (
-              <>
-                <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="h-5 w-5" alt="Google" />
-                Continue with Google
-              </>
+              <div className="flex items-center gap-3">
+                <img 
+                  src="https://www.svgrepo.com/show/475656/google-color.svg" 
+                  style={{ width: '20px', height: '20px' }} // Inline style for maximum enforcement
+                  className="shrink-0"
+                  alt="Google" 
+                />
+                <span>Continue with Google</span>
+              </div>
             )}
           </button>
 
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200"></div></div>
-            <div className="relative flex justify-center text-sm"><span className="bg-transparent px-2 text-slate-400 font-medium bg-white/50 backdrop-blur">or email</span></div>
+          <div className="relative py-2">
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-100"></div></div>
+            <div className="relative flex justify-center text-[10px] uppercase tracking-widest font-bold text-slate-300"><span className="bg-white px-4">or email</span></div>
           </div>
 
           {/* EMAIL FORM */}
-          <form className="space-y-4" onSubmit={handleAuth}>
-            <div className="relative">
-              <Mail className="absolute left-4 top-3.5 text-slate-400" size={18} />
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Email address"
-                className="w-full rounded-xl py-3 pl-12 bg-slate-50 border-transparent focus:bg-white focus:border-slate-300 focus:ring-0 transition-all font-medium placeholder:text-slate-400"
-              />
-            </div>
-
-            <div className="relative">
-              <Lock className="absolute left-4 top-3.5 text-slate-400" size={18} />
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Password"
-                className="w-full rounded-xl py-3 pl-12 bg-slate-50 border-transparent focus:bg-white focus:border-slate-300 focus:ring-0 transition-all font-medium placeholder:text-slate-400"
-              />
-            </div>
+          <form className="space-y-3" onSubmit={handleAuth}>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Email address"
+              className="w-full rounded-2xl py-4 px-5 bg-slate-50 border-transparent focus:bg-white focus:border-slate-200 focus:ring-0 transition-all text-sm font-medium"
+            />
+            <input
+              type="password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Password"
+              className="w-full rounded-2xl py-4 px-5 bg-slate-50 border-transparent focus:bg-white focus:border-slate-200 focus:ring-0 transition-all text-sm font-medium"
+            />
 
             {errorMsg && (
-              <div className="text-rose-600 text-xs bg-rose-50 p-3 rounded-xl flex gap-2 font-medium border border-rose-100">
-                <AlertCircle size={16} /> {errorMsg}
+              <div className="text-rose-600 text-[11px] bg-rose-50 p-3 rounded-xl border border-rose-100 font-medium">
+                {errorMsg}
               </div>
             )}
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-slate-900 text-white rounded-xl py-3.5 font-bold shadow-lg shadow-slate-200 hover:scale-[1.02] active:scale-[0.98] transition-all flex justify-center items-center gap-2"
+              className="w-full bg-slate-900 text-white rounded-2xl py-4 font-bold shadow-lg shadow-slate-200 hover:opacity-90 transition-all flex justify-center items-center gap-2 mt-2"
             >
-              {loading ? <Loader2 className="animate-spin" /> : isSignUp ? 'Create Account' : 'Sign In'}
-              {!loading && <ArrowRight size={18} />}
+              {loading ? <Loader2 className="animate-spin" /> : isSignUp ? 'Login or Get Started' : 'Sign In'}
             </button>
           </form>
 
-          <div className="text-center">
-            <button
-              onClick={() => { setIsSignUp(!isSignUp); setErrorMsg(''); }}
-              className="text-sm font-bold text-slate-500 hover:text-slate-900 transition-colors"
-            >
-              {isSignUp ? 'Already have an account? Sign in' : 'New here? Create an account'}
-            </button>
-          </div>
+          <button
+            onClick={() => { setIsSignUp(!isSignUp); setErrorMsg(''); }}
+            className="w-full text-center text-[11px] font-bold text-slate-400 hover:text-slate-900 uppercase tracking-widest pt-4"
+          >
+            {isSignUp ? 'Already have an account? Sign in' : 'New here? Create account'}
+          </button>
         </div>
       </motion.div>
     </div>
