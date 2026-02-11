@@ -2,8 +2,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
-import { Loader2, ArrowRight } from 'lucide-react'
-import { motion } from 'framer-motion'
+import { Loader2 } from 'lucide-react'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -12,31 +11,25 @@ export default function LoginPage() {
   const [googleLoading, setGoogleLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
   const [isSignUp, setIsSignUp] = useState(false)
-  const [checkingSession, setCheckingSession] = useState(true)
-
+  
   const router = useRouter()
 
+  // Check Session
   useEffect(() => {
-    const checkSession = async () => {
+    const check = async () => {
       const { data: { session } } = await supabase.auth.getSession()
       if (session) router.replace('/')
-      else setCheckingSession(false)
     }
-    checkSession()
+    check()
   }, [router])
 
   const handleGoogleLogin = async () => {
     setGoogleLoading(true)
-    setErrorMsg('')
-    const redirectTo = `${window.location.origin}/auth/callback`
     const { error } = await supabase.auth.signInWithOAuth({ 
-        provider: 'google',
-        options: { redirectTo }
+      provider: 'google',
+      options: { redirectTo: `${window.location.origin}/auth/callback` }
     })
-    if (error) {
-      setErrorMsg(error.message)
-      setGoogleLoading(false)
-    }
+    if (error) { setErrorMsg(error.message); setGoogleLoading(false); }
   }
 
   const handleAuth = async (e: React.FormEvent) => {
@@ -57,111 +50,130 @@ export default function LoginPage() {
         }
       }
     } catch (error: any) {
-      setErrorMsg(error.message || 'An error occurred')
-      setLoading(false)
+      setErrorMsg(error.message); setLoading(false);
     }
   }
 
-  if (checkingSession) return null
+  // --- STYLES ---
+  const containerStyle: React.CSSProperties = {
+    minHeight: '100vh', 
+    backgroundColor: '#020617', // Deep Dark Blue
+    display: 'flex', 
+    flexDirection: 'column', 
+    alignItems: 'center', 
+    justifyContent: 'center', // Centers everything vertically
+    padding: '20px',
+    position: 'relative',
+    overflow: 'hidden'
+  }
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center px-6 relative overflow-hidden">
+    <div style={containerStyle}>
       
-      {/* Container */}
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-[400px] z-10 flex flex-col items-center"
-      >
-        {/* Header Section */}
-        <div className="text-center space-y-4 mb-10">
-          <h1 className="text-5xl font-serif font-bold text-white tracking-tighter">WYTH</h1>
-          <div className="space-y-1">
-            <p className="text-indigo-200/70 font-medium tracking-tight">Observe the vibe.</p>
-            <p className="text-indigo-200/70 font-medium tracking-tight">Understand the person.</p>
-            <p className="text-white font-bold text-lg tracking-tight">Then Decide.</p>
-          </div>
+      {/* 1. BRAND SECTION */}
+      <div style={{ textAlign: 'center', marginBottom: '40px', zIndex: 10 }}>
+        {/* WYTH: Serif Font */}
+        <h1 style={{ fontFamily: 'serif', fontSize: '3.5rem', fontWeight: 'bold', color: 'white', letterSpacing: '-1px', marginBottom: '0' }}>
+          WYTH
+        </h1>
+        
+        {/* Tagline: Cursive */}
+        <p style={{ fontFamily: 'cursive', fontSize: '1.2rem', color: '#a5b4fc', marginTop: '5px', fontStyle: 'italic' }}>
+          Connect for Life
+        </p>
+
+        {/* The 3 Lines: Distinct Vibe */}
+        <div style={{ marginTop: '30px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <p style={{ fontSize: '1.1rem', color: '#e0e7ff', letterSpacing: '0.5px' }}>Feel the Vibe.</p>
+          <p style={{ fontSize: '1.1rem', color: '#e0e7ff', letterSpacing: '0.5px' }}>Understand the Person.</p>
+          <p style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'white', textDecoration: 'underline', textDecorationColor: '#6366f1', textUnderlineOffset: '4px' }}>
+            Decide.
+          </p>
+        </div>
+      </div>
+
+      {/* 2. RECTANGULAR BOX SECTION */}
+      <div style={{ 
+        width: '100%', 
+        maxWidth: '380px', 
+        backgroundColor: 'rgba(255, 255, 255, 0.05)', // Subtle Glass
+        border: '1px solid rgba(255, 255, 255, 0.1)', 
+        borderRadius: '16px', // Rectangular but slightly soft
+        padding: '24px',
+        zIndex: 10
+      }}>
+
+        {/* GOOGLE BUTTON (Simple) */}
+        <button
+          onClick={handleGoogleLogin}
+          disabled={googleLoading}
+          style={{ 
+            width: '100%', 
+            padding: '12px', 
+            backgroundColor: 'white', 
+            borderRadius: '8px', 
+            border: 'none', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            gap: '10px',
+            cursor: 'pointer'
+          }}
+        >
+          {googleLoading ? <Loader2 className="animate-spin text-slate-900"/> : (
+            <>
+              <img src="https://www.svgrepo.com/show/475656/google-color.svg" style={{ width: '20px', height: '20px' }} alt="G" />
+              <span style={{ color: '#0f172a', fontWeight: 'bold', fontSize: '14px' }}>Continue with Google</span>
+            </>
+          )}
+        </button>
+
+        {/* OR DIVIDER */}
+        <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0', opacity: 0.5 }}>
+          <div style={{ height: '1px', flex: 1, backgroundColor: 'white' }}></div>
+          <span style={{ padding: '0 10px', fontSize: '12px', color: 'white' }}>OR</span>
+          <div style={{ height: '1px', flex: 1, backgroundColor: 'white' }}></div>
         </div>
 
-        {/* Glassmorphic Form Container */}
-        <div className="w-full bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-8 shadow-2xl">
-          <div className="space-y-6">
-            
-            {/* GOOGLE BUTTON - Strictly Center & Size Locked */}
-            <button
-              type="button"
-              onClick={handleGoogleLogin}
-              disabled={googleLoading || loading}
-              className="flex w-full items-center justify-center gap-3 rounded-2xl bg-white px-4 py-4 text-sm font-bold text-slate-900 transition-all active:scale-[0.98] shadow-lg hover:bg-slate-50"
-            >
-              {googleLoading ? (
-                <Loader2 className="animate-spin h-5 w-5 text-indigo-600" />
-              ) : (
-                <div className="flex items-center gap-3">
-                  {/* FORCE SIZE WITH INLINE STYLE */}
-                  <img 
-                    src="https://www.svgrepo.com/show/475656/google-color.svg" 
-                    style={{ width: '20px', height: '20px', minWidth: '20px' }} 
-                    className="shrink-0 block"
-                    alt="Google" 
-                  />
-                  <span>Continue with Google</span>
-                </div>
-              )}
-            </button>
+        {/* SIGN IN FORM */}
+        <form onSubmit={handleAuth} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <input 
+            type="email" 
+            placeholder="Email Address" 
+            value={email} 
+            onChange={e => setEmail(e.target.value)}
+            style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.2)', backgroundColor: 'transparent', color: 'white', fontSize: '14px' }}
+          />
+          <input 
+            type="password" 
+            placeholder="Password" 
+            value={password} 
+            onChange={e => setPassword(e.target.value)}
+            style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.2)', backgroundColor: 'transparent', color: 'white', fontSize: '14px' }}
+          />
 
-            <div className="relative flex items-center gap-4 py-2">
-              <div className="h-px w-full bg-white/10" />
-              <span className="text-[10px] uppercase tracking-widest font-bold text-white/30 whitespace-nowrap">or email</span>
-              <div className="h-px w-full bg-white/10" />
-            </div>
+          {errorMsg && <p style={{ color: '#fb7185', fontSize: '12px', textAlign: 'center' }}>{errorMsg}</p>}
 
-            {/* EMAIL FORM */}
-            <form className="space-y-3" onSubmit={handleAuth}>
-              <div className="space-y-2">
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Email address"
-                  className="w-full rounded-xl py-4 px-5 bg-white/5 border border-white/10 text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all text-sm"
-                />
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Password"
-                  className="w-full rounded-xl py-4 px-5 bg-white/5 border border-white/10 text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all text-sm"
-                />
-              </div>
+          <button 
+            type="submit" 
+            disabled={loading}
+            style={{ width: '100%', padding: '12px', marginTop: '10px', backgroundColor: '#4f46e5', borderRadius: '8px', border: 'none', color: 'white', fontWeight: 'bold', cursor: 'pointer' }}
+          >
+            {loading ? <Loader2 className="animate-spin mx-auto"/> : (isSignUp ? 'Create Account' : 'Sign In')}
+          </button>
+        </form>
 
-              {errorMsg && (
-                <div className="text-rose-400 text-[11px] bg-rose-500/10 p-3 rounded-xl border border-rose-500/20 font-medium text-center">
-                  {errorMsg}
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl py-4 font-bold shadow-xl shadow-indigo-600/20 transition-all active:scale-[0.98] flex justify-center items-center gap-2"
-              >
-                {loading ? <Loader2 className="animate-spin h-5 w-5" /> : (isSignUp ? 'Create Account' : 'Sign In')}
-                {!loading && <ArrowRight size={16} />}
-              </button>
-            </form>
-
-            <button
-              onClick={() => { setIsSignUp(!isSignUp); setErrorMsg(''); }}
-              className="w-full text-center text-[11px] font-bold text-white/40 hover:text-white uppercase tracking-widest pt-2 transition-colors"
-            >
-              {isSignUp ? 'Already have an account? Sign in' : 'New here? Create account'}
-            </button>
-          </div>
+        {/* NEW HERE? */}
+        <div style={{ textAlign: 'center', marginTop: '20px' }}>
+          <button 
+            onClick={() => setIsSignUp(!isSignUp)}
+            style={{ background: 'none', border: 'none', color: '#a5b4fc', fontSize: '13px', cursor: 'pointer', textDecoration: 'underline' }}
+          >
+            {isSignUp ? 'Already have an account? Sign In' : 'New Here? Sign Up'}
+          </button>
         </div>
-      </motion.div>
+
+      </div>
     </div>
   )
 }

@@ -1,5 +1,8 @@
-import './globals.css' // MUST be top import
-import ClientLayout from '@/components/ClientLayout' // We move logic here
+import './globals.css'
+import { Playfair_Display, Inter } from 'next/font/google'
+
+const playfair = Playfair_Display({ subsets: ['latin'] })
+const inter = Inter({ subsets: ['latin'] })
 
 export const metadata = {
   title: 'WYTH',
@@ -12,12 +15,10 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className="h-full">
-      {/* We remove 'use client' from here. 
-         We delegate interaction to <ClientLayout> 
-      */}
-      <body className="h-full bg-slate-950 antialiased m-0 p-0">
-        <ClientLayout>{children}</ClientLayout>
+    <html lang="en">
+      {/* Deep Blue Background applied globally */}
+      <body className={`${inter.className} bg-slate-950 text-white antialiased m-0 p-0`}>
+        {children}
       </body>
     </html>
   )
