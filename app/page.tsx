@@ -8,10 +8,41 @@ import {
   Lock, Award, CheckCircle2, Instagram, Linkedin, 
   X, UserPlus, ShieldCheck, Loader2, Bell 
 } from 'lucide-react'
-import { SlotPaywall, GoldUpsell } from '@/components/InteractionModals' // Ensure this path is correct or inline the components if preferred
+// If these components don't exist yet, you can comment them out or create empty placeholders
+import { SlotPaywall, GoldUpsell } from '@/components/InteractionModals' 
+
+// --- TYPES ---
+interface Profile {
+  id: string
+  full_name: string
+  city: string
+  intent: string
+  is_gold: boolean
+  career_verified: boolean
+  brand_id?: string
+  vouches_count: number
+  slots_limit: number
+  slots_used: number
+}
+
+interface Post {
+  id: string
+  type: 'text' | 'photo' | 'achievement'
+  caption?: string
+  media_url?: string
+  achievement_title?: string
+  created_at: string
+  profiles: Profile // Joined data from Supabase
+}
 
 // --- INTERNAL COMPONENT: FEED CARD ---
-const FeedCard = ({ post, isConnected = false, onConnect, onSocialUnlock, onComment }: any) => {
+const FeedCard = ({ post, isConnected = false, onConnect, onSocialUnlock, onComment }: { 
+  post: Post, 
+  isConnected: boolean, 
+  onConnect: () => void, 
+  onSocialUnlock: () => void, 
+  onComment: () => void 
+}) => {
   const [showReactionDock, setShowReactionDock] = useState(false)
   const [reactionType, setReactionType] = useState<string | null>(null)
   
@@ -24,6 +55,7 @@ const FeedCard = ({ post, isConnected = false, onConnect, onSocialUnlock, onComm
 
   return (
     <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden mb-6 relative">
+      {/* HEADER */}
       <div className="p-4 flex justify-between items-start">
         <div className="flex gap-3">
           <div className="w-10 h-10 rounded-full bg-slate-100 overflow-hidden border border-slate-200">
@@ -53,7 +85,6 @@ const FeedCard = ({ post, isConnected = false, onConnect, onSocialUnlock, onComm
                 <span className="flex items-center gap-1 text-[10px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100">
                     <ShieldCheck size={10} /> {profile.vouches_count || 0}
                 </span>
-                {/* Location for context */}
                 {profile.city && <span className="text-[10px] text-slate-400">• {profile.city}</span>}
             </div>
           </div>
@@ -63,6 +94,7 @@ const FeedCard = ({ post, isConnected = false, onConnect, onSocialUnlock, onComm
         )}
       </div>
 
+      {/* CONTENT: PHOTO */}
       {post.type === 'photo' && post.media_url && (
         <div className="aspect-[4/5] bg-slate-100 relative">
           <img src={post.media_url} className="w-full h-full object-cover" alt="post"/>
@@ -77,6 +109,7 @@ const FeedCard = ({ post, isConnected = false, onConnect, onSocialUnlock, onComm
         </div>
       )}
 
+      {/* CONTENT: TEXT */}
       {post.type === 'text' && (
         <div className="px-6 py-10 bg-slate-50 border-y border-slate-100 relative">
           <p className="text-slate-800 text-lg font-serif font-medium text-center italic leading-relaxed">
@@ -93,6 +126,7 @@ const FeedCard = ({ post, isConnected = false, onConnect, onSocialUnlock, onComm
         </div>
       )}
 
+      {/* CONTENT: ACHIEVEMENT */}
       {post.type === 'achievement' && (
         <div className="px-4 pb-2">
            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-5 border border-blue-100 relative overflow-hidden">
@@ -111,6 +145,7 @@ const FeedCard = ({ post, isConnected = false, onConnect, onSocialUnlock, onComm
         </div>
       )}
 
+      {/* SOCIAL SIGNALS */}
       <div className="px-4 mt-3 mb-3 grid grid-cols-2 gap-2">
             <div onClick={isConnected ? undefined : onSocialUnlock} className={`rounded-xl p-3 border flex flex-col justify-center relative transition ${isConnected ? 'bg-blue-50 border-blue-200' : 'bg-blue-50/50 border-blue-100 cursor-pointer hover:bg-blue-100/50'}`}>
                 <div className="flex items-center gap-1.5 mb-1"><Linkedin size={14} className="text-blue-700"/><span className="text-[10px] font-bold text-slate-500 uppercase">Career</span></div>
@@ -143,6 +178,7 @@ const FeedCard = ({ post, isConnected = false, onConnect, onSocialUnlock, onComm
             </div>
       </div>
 
+      {/* ACTION BAR */}
       <div className="px-4 pb-4 flex items-center gap-2">
          <button onClick={() => setShowReactionDock(!showReactionDock)} className={`flex-1 border rounded-xl py-2.5 font-bold text-sm transition flex items-center justify-center gap-2 active:scale-95 ${reactionType ? 'border-rose-200 bg-rose-50 text-rose-600' : 'border-slate-200 text-slate-600'}`}>
            {reactionType ? <span className="text-lg">{reactionType}</span> : <><Heart size={18}/> React</>}
@@ -157,6 +193,8 @@ const FeedCard = ({ post, isConnected = false, onConnect, onSocialUnlock, onComm
              </button>
          }
       </div>
+      
+      {/* COMMENTS / CAPTION */}
       <div className="px-4 pb-5 pt-0">
         {post.type !== 'text' && post.caption && <p className="text-sm text-slate-700 mb-3"><span className="font-bold mr-2">{profile?.full_name}</span>{post.caption}</p>}
         <div onClick={onComment} className="flex items-center gap-3 bg-slate-50 rounded-full px-4 py-2.5 border border-slate-100 cursor-pointer hover:bg-slate-100 transition group">
@@ -173,7 +211,7 @@ const FeedCard = ({ post, isConnected = false, onConnect, onSocialUnlock, onComm
 
 export default function Home() {
   const router = useRouter()
-  const [posts, setPosts] = useState<any[]>([])
+  const [posts, setPosts] = useState<Post[]>([])
   const [connectedUserIds, setConnectedUserIds] = useState<Set<string>>(new Set()) 
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<any>(null)
@@ -187,19 +225,20 @@ export default function Home() {
   const [showGoldUpsell, setShowGoldUpsell] = useState(false)
   const [targetUserId, setTargetUserId] = useState<string | null>(null)
 
-  // --- SMART SORT ALGORITHM (Integrated) ---
-  const fetchFeed = async (userProfile?: any) => {
+  // --- SMART SORT ALGORITHM ---
+  const fetchFeed = async (userProfile?: Profile) => {
       // 1. Fetch raw posts from DB
       const { data: postsData } = await supabase
         .from('posts')
-        .select(`*, profiles (id, full_name, city, intent, is_gold, career_verified, vibe_verified, brand_id, vouches_count)`)
+        .select(`*, profiles (id, full_name, city, intent, is_gold, career_verified, brand_id, vouches_count)`)
         .order('created_at', { ascending: false })
         .limit(50) 
       
       if (postsData) {
           if (userProfile) {
               // 2. Client-Side Sorting
-              const sorted = postsData.sort((a, b) => {
+              // We cast postsData to any[] for sorting because Supabase return types can be tricky
+              const sorted = (postsData as any[]).sort((a, b) => {
                   let scoreA = 0; let scoreB = 0;
                   
                   // Rule A: Geography Match (+10)
@@ -220,7 +259,7 @@ export default function Home() {
               })
               setPosts(sorted)
           } else {
-              setPosts(postsData)
+              setPosts(postsData as any[])
           }
       }
       setLoading(false)
@@ -231,19 +270,22 @@ export default function Home() {
         const { data: authData } = await supabase.auth.getUser()
         const currentUser = authData?.user
         
+        // 1. Check Auth
         if (!currentUser) {
             setUser(null)
             router.replace('/login')
             return
         }
 
+        // 2. Check Profile (Onboarding Guard)
         const { data: profile } = await supabase
             .from('profiles')
-            .select('full_name, slots_limit, slots_used, city, intent')
+            .select('*')
             .eq('id', currentUser.id)
             .maybeSingle()
 
         if (!profile || !profile.full_name) {
+            // Redirect to Onboarding if profile is incomplete
             router.replace('/onboarding')
             return
         }
@@ -251,6 +293,7 @@ export default function Home() {
         setUser(currentUser)
         setSlotsLeft((profile.slots_limit || 3) - (profile.slots_used || 0))
 
+        // 3. Fetch Connections (to show "Message" vs "Connect")
         const { data: connections } = await supabase
             .from('connections')
             .select('receiver_id')
@@ -265,7 +308,7 @@ export default function Home() {
     }
 
     initData()
-  }, []) // Remove 'router' from deps to prevent loop
+  }, []) 
 
   const handleCreatePost = async () => {
       if (!newPostContent.trim() || !user) return
@@ -273,12 +316,15 @@ export default function Home() {
       const { error } = await supabase.from('posts').insert({
           user_id: user.id,
           type: 'text',
-          caption: newPostContent
+          caption: newPostContent,
+          // Assuming 'image_url' is nullable or handled by default in DB
       })
       if (!error) {
           setNewPostContent('')
-          const { data: profile } = await supabase.from('profiles').select('city, intent').eq('id', user.id).single()
+          const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single()
           fetchFeed(profile)
+      } else {
+        alert("Failed to post. Please try again.")
       }
       setIsPosting(false)
   }
@@ -297,20 +343,22 @@ export default function Home() {
     if (!user) return router.push('/login')
 
     if (paywallMode === 'comment') {
-       const { data } = await supabase.rpc('spend_for_comment')
-       if (data === 'success_paid' || data === 'success_free_allowance') {
+       const { data, error } = await supabase.rpc('spend_for_comment', { amount: 9 }) // Pass required args if RPC expects them
+       if (!error) {
            alert('Comment access unlocked!')
            setShowPaywall(false)
        } else {
-           alert('Insufficient coins! Visit your Wallet.')
+           alert('Insufficient coins or Error! Visit your Wallet.')
        }
     } else {
        if (!targetUserId) return
-       const { data } = await supabase.rpc('request_connection', { target_user_id: targetUserId })
-       if (data === 'success_connected' || data === 'error_already_connected') {
+       // Assuming 'request_connection' RPC handles the slot deduction or coin check
+       const { data, error } = await supabase.rpc('request_connection', { target_user_id: targetUserId })
+       
+       if (!error && (data === 'success_connected' || data === 'error_already_connected')) {
            router.push(`/chat?open=${targetUserId}`)
        } else {
-           alert('Insufficient coins! Visit your Wallet.')
+           alert('Insufficient Slots or Coins! ' + (error?.message || ''))
        }
     }
   }
@@ -324,16 +372,15 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-slate-50 pb-20">
       <header className="sticky top-0 z-20 bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 py-3 flex justify-between items-center">
-  <h1 className="text-xl font-serif font-bold text-slate-900 tracking-tight">WYTH</h1>
-  <div className="flex items-center gap-3">
-      {user && (
-          <div className="bg-rose-50 text-rose-600 px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 border border-rose-100">
-              <Zap size={12} className="fill-rose-600" /> {slotsLeft} Left
-          </div>
-      )}
-      {/* Links removed - they are now in BottomNav */}
-  </div>
-</header>
+        <h1 className="text-xl font-serif font-bold text-slate-900 tracking-tight">WYTH</h1>
+        <div className="flex items-center gap-3">
+            {user && (
+                <div className="bg-rose-50 text-rose-600 px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 border border-rose-100">
+                    <Zap size={12} className="fill-rose-600" /> {slotsLeft} Left
+                </div>
+            )}
+        </div>
+      </header>
 
       <div className="max-w-md mx-auto pt-4 px-3">
         {user && (
@@ -342,7 +389,7 @@ export default function Home() {
                     value={newPostContent}
                     onChange={(e) => setNewPostContent(e.target.value)}
                     placeholder="What's your vibe today?" 
-                    className="w-full bg-slate-50 rounded-2xl p-3 text-sm focus:outline-none h-20 resize-none mb-3 border-none ring-0"
+                    className="w-full bg-slate-50 rounded-2xl p-3 text-sm focus:outline-none h-20 resize-none mb-3 border-none ring-0 placeholder:text-slate-400"
                 />
                 <div className="flex justify-end">
                     <button 

@@ -2,46 +2,47 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function GET(request: NextRequest) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    return NextResponse.redirect(new URL('/login', request.url))
-  }
-
-  const { searchParams } = new URL(request.url)
+  const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
+  // Default to '/' if no 'next' param is provided
   const next = searchParams.get('next') ?? '/'
 
-  if (!code) {
-    return NextResponse.redirect(
-      new URL('/login?error=missing_code', request.url)
+  if (code) {
+    // 1. Create the Redirect Response FIRST
+    // We need this object because we can only set cookies on a Response, not the Request.
+    const response = NextResponse.redirect(`${origin}${next}`)
+
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll()
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              // Write cookies to the RESPONSE object we created above
+              response.cookies.set({
+                name,
+                value,
+                ...options,
+              })
+            )
+          },
+        },
+      }
     )
+
+    // 2. Exchange the Code for a Session
+    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    
+    if (!error) {
+      // 3. Return the response (which now contains the Session Cookie)
+      return response
+    }
   }
 
-  const response = NextResponse.redirect(new URL(next, request.url))
-
-  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
-    cookies: {
-      get(name: string) {
-        return request.cookies.get(name)?.value
-      },
-      set(name: string, value: string, options) {
-        response.cookies.set(name, value, options)
-      },
-      remove(name: string, options) {
-        response.cookies.set(name, '', options)
-      },
-    },
-  })
-
-  const { error } = await supabase.auth.exchangeCodeForSession(code)
-
-  if (error) {
-    return NextResponse.redirect(
-      new URL('/login?error=auth_failed', request.url)
-    )
-  }
-
-  return response
+  // Error Case: Return the user to login with an error code
+  return NextResponse.redirect(`${origin}/login?error=auth_code_error`)
 }
