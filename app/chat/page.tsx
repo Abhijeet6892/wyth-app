@@ -4,11 +4,10 @@ import { supabase } from '@/utils/supabase/client'
 import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { 
-  ArrowLeft, Send, MoreVertical, Phone, Video, ShieldAlert, 
-  Contact, Ban, Flag, User, Lock, Loader2, Clock, UserMinus, Sparkles, X 
+  ArrowLeft, Send, MoreVertical, Phone, ShieldAlert, 
+  Contact, Ban, User, Lock, Loader2, UserMinus, Sparkles, X 
 } from 'lucide-react'
-import { SlotPaywall, GoldUpsell } from '@/components/InteractionModals'
-import { generateChatHelp, type ChatIntent } from '../actions/generateChatHelp'
+import { generateChatHelp, type ChatIntent, type ChatTone } from '../actions/generateChatHelp'
 
 function ChatContent() {
   const router = useRouter()
@@ -32,6 +31,7 @@ function ChatContent() {
   // AI States
   const [showAiMenu, setShowAiMenu] = useState(false)
   const [aiLoading, setAiLoading] = useState(false)
+  const [aiTone, setAiTone] = useState<ChatTone>('Chill') // New Tone State
 
   // 1. Load Data
   useEffect(() => {
@@ -89,7 +89,7 @@ function ChatContent() {
   const hasSharedContact = messages.some(m => m.sender_id === user?.id && m.content === 'Verified Contact Card 📇')
   const isLimitReached = !userIsGold && !hasSharedContact && myMessageCount >= 10
 
-  // --- AI LOGIC ---
+  // --- AI LOGIC (Updated) ---
   const handleAiAssist = async (intent: ChatIntent) => {
       if (!activeChat) return
       setAiLoading(true)
@@ -102,7 +102,8 @@ function ChatContent() {
               intent, 
               activeChat.profiles.full_name, 
               context, 
-              lastMsg
+              lastMsg,
+              aiTone // Pass the selected tone
           )
           setNewMessage(suggestion)
           setShowAiMenu(false)
@@ -126,9 +127,6 @@ function ChatContent() {
         setShowContactModal(true)
         return
     }
-
-    // Append AI Disclosure if using AI (Simple check if message matches what we generated, or just always append if we want strictness. 
-    // For MVP, we let user send what is in the box.)
     
     const { error } = await supabase.from('messages').insert({
       sender_id: user.id,
@@ -240,7 +238,6 @@ function ChatContent() {
                     <div key={m.id} className={`flex ${m.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}>
                         <div className={`max-w-[70%] px-4 py-2 rounded-2xl text-sm ${m.sender_id === user?.id ? 'bg-slate-900 text-white rounded-tr-sm' : 'bg-white border border-slate-200'}`}>
                             {m.content}
-                            {/* Simple Logic for Transparency: If it matches AI tone, we could add badge here, or just let users add it themselves */}
                         </div>
                     </div>
                 ))}
@@ -253,16 +250,41 @@ function ChatContent() {
       {activeChat && (
         <div className="p-3 bg-white border-t border-slate-100 relative">
             
-            {/* AI Menu */}
+            {/* AI Menu (UPDATED) */}
             {showAiMenu && (
-                <div className="absolute bottom-full left-3 mb-2 bg-white border border-slate-100 shadow-xl rounded-xl p-2 flex flex-col gap-1 w-48 animate-in slide-in-from-bottom-2 z-20">
-                    <div className="flex justify-between items-center px-2 pb-1 border-b border-slate-50 mb-1">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase">AI Assist</span>
+                <div className="absolute bottom-full left-3 mb-2 bg-white border border-slate-100 shadow-xl rounded-xl p-3 flex flex-col gap-2 w-56 animate-in slide-in-from-bottom-2 z-20">
+                    <div className="flex justify-between items-center pb-2 border-b border-slate-50">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase flex gap-1 items-center">
+                           <Sparkles size={10}/> AI Assist
+                        </span>
                         <button onClick={() => setShowAiMenu(false)}><X size={14} className="text-slate-400"/></button>
                     </div>
-                    <button onClick={() => handleAiAssist('icebreaker')} disabled={aiLoading} className="text-left px-3 py-2 hover:bg-indigo-50 rounded-lg text-sm font-medium text-slate-700">🧊 Icebreaker</button>
-                    <button onClick={() => handleAiAssist('reply')} disabled={aiLoading} className="text-left px-3 py-2 hover:bg-indigo-50 rounded-lg text-sm font-medium text-slate-700">↩️ Polite Reply</button>
-                    <button onClick={() => handleAiAssist('decline')} disabled={aiLoading} className="text-left px-3 py-2 hover:bg-rose-50 rounded-lg text-sm font-medium text-rose-600">🚫 Say No Nicely</button>
+
+                    {/* Tone Selector */}
+                    <div className="flex bg-slate-100 rounded-lg p-1 gap-1">
+                        {['Chill', 'Witty', 'Romantic'].map((t) => (
+                            <button 
+                                key={t}
+                                onClick={() => setAiTone(t as ChatTone)}
+                                className={`flex-1 text-[10px] font-bold py-1.5 rounded-md transition-all ${aiTone === t ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                            >
+                                {t}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex flex-col gap-1">
+                        <button onClick={() => handleAiAssist('icebreaker')} disabled={aiLoading} className="text-left px-3 py-2 hover:bg-indigo-50 rounded-lg text-xs font-medium text-slate-700 flex items-center gap-2">
+                            🧊  Icebreaker
+                        </button>
+                        <button onClick={() => handleAiAssist('reply')} disabled={aiLoading} className="text-left px-3 py-2 hover:bg-indigo-50 rounded-lg text-xs font-medium text-slate-700 flex items-center gap-2">
+                            ↩️  Polite Reply
+                        </button>
+                        <button onClick={() => handleAiAssist('decline')} disabled={aiLoading} className="text-left px-3 py-2 hover:bg-rose-50 rounded-lg text-xs font-medium text-rose-600 flex items-center gap-2">
+                            🚫  Say No Nicely
+                        </button>
+                    </div>
                 </div>
             )}
 
