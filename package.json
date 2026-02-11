@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
-    "@supabase/ssr": "^0.1.0",
+    "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.39.0",
     "framer-motion": "^12.34.0",
     "lucide-react": "^0.563.0",
