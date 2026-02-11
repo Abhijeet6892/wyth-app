@@ -15,9 +15,9 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      {/* Deep Blue Background applied globally */}
-      <body className={`${inter.className} bg-slate-950 text-white antialiased m-0 p-0`}>
+    <html lang="en" className="h-full w-full">
+      {/* Forced dark background on the BODY tag to prevent white borders */}
+      <body className={`${inter.className} bg-slate-950 text-white antialiased m-0 p-0 h-full w-full overflow-x-hidden`}>
         {children}
       </body>
     </html>
