@@ -1,37 +1,36 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-import ClientLayout from "@/components/ClientLayout";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-export const metadata: Metadata = {
-  title: "WYTH",
-  description: "Follow for Vibe. Connect for Life.",
-};
+'use client'
+import './globals.css'
+import { useEffect, useState } from 'react'
+import { AnimatePresence } from 'framer-motion'
+import SplashScreen from '@/components/SplashScreen'
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: {
+  children: React.ReactNode
+}) {
+  const [showSplash, setShowSplash] = useState(true)
+
+  useEffect(() => {
+    // Show splash for 2.8s, then fade into the app
+    const timer = setTimeout(() => {
+      setShowSplash(false)
+    }, 2800) 
+    
+    return () => clearTimeout(timer)
+  }, [])
+
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-slate-50`}
-      >
-        <ClientLayout>
-          {children}
-        </ClientLayout>
+      <body className="bg-white antialiased">
+        {/* APP CONTENT RENDERS IMMEDIATELY UNDERNEATH */}
+        {children}
+
+        {/* SPLASH OVERLAY SITS ON TOP */}
+        <AnimatePresence>
+          {showSplash && <SplashScreen />}
+        </AnimatePresence>
       </body>
     </html>
-  );
+  )
 }
