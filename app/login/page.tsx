@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
-import { Loader2, Mail, Lock, AlertCircle, ArrowRight } from 'lucide-react'
+import { Loader2, ArrowRight } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 export default function LoginPage() {
@@ -66,14 +66,12 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center px-6 relative overflow-hidden">
-      {/* Background Animated Glows */}
-      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-600/20 blur-[120px] rounded-full" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-blue-600/10 blur-[120px] rounded-full" />
-
+      
+      {/* Container */}
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-[400px] z-10"
+        className="w-full max-w-[400px] z-10 flex flex-col items-center"
       >
         {/* Header Section */}
         <div className="text-center space-y-4 mb-10">
@@ -86,23 +84,25 @@ export default function LoginPage() {
         </div>
 
         {/* Glassmorphic Form Container */}
-        <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-8 shadow-2xl">
+        <div className="w-full bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-8 shadow-2xl">
           <div className="space-y-6">
-            {/* GOOGLE BUTTON - Iron-Clad Layout */}
+            
+            {/* GOOGLE BUTTON - Strictly Center & Size Locked */}
             <button
               type="button"
               onClick={handleGoogleLogin}
               disabled={googleLoading || loading}
-              className="flex w-full items-center justify-center gap-3 rounded-2xl bg-white px-4 py-4 text-sm font-bold text-slate-900 transition-all active:scale-[0.98] shadow-lg"
+              className="flex w-full items-center justify-center gap-3 rounded-2xl bg-white px-4 py-4 text-sm font-bold text-slate-900 transition-all active:scale-[0.98] shadow-lg hover:bg-slate-50"
             >
               {googleLoading ? (
                 <Loader2 className="animate-spin h-5 w-5 text-indigo-600" />
               ) : (
                 <div className="flex items-center gap-3">
+                  {/* FORCE SIZE WITH INLINE STYLE */}
                   <img 
                     src="https://www.svgrepo.com/show/475656/google-color.svg" 
-                    style={{ width: '20px', height: '20px' }} 
-                    className="shrink-0"
+                    style={{ width: '20px', height: '20px', minWidth: '20px' }} 
+                    className="shrink-0 block"
                     alt="Google" 
                   />
                   <span>Continue with Google</span>
