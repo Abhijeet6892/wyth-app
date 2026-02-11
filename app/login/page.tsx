@@ -65,93 +65,101 @@ export default function LoginPage() {
   if (checkingSession) return null
 
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6">
+    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center px-6 relative overflow-hidden">
+      {/* Background Animated Glows */}
+      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-600/20 blur-[120px] rounded-full" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-blue-600/10 blur-[120px] rounded-full" />
+
       <motion.div 
-        initial={{ opacity: 0, y: 10 }}
+        initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-[400px] space-y-8"
+        className="w-full max-w-[400px] z-10"
       >
-        {/* Header Section (ChatGPT Style) */}
-        <div className="text-center space-y-3">
-          <h1 className="text-4xl font-serif font-bold text-slate-900 tracking-tighter">WYTH</h1>
-          <div className="space-y-1 pt-4">
-            <p className="text-slate-500 font-medium tracking-tight">Observe the vibe.</p>
-            <p className="text-slate-500 font-medium tracking-tight">Understand the person.</p>
-            <p className="text-slate-900 font-bold tracking-tight">Then Decide.</p>
+        {/* Header Section */}
+        <div className="text-center space-y-4 mb-10">
+          <h1 className="text-5xl font-serif font-bold text-white tracking-tighter">WYTH</h1>
+          <div className="space-y-1">
+            <p className="text-indigo-200/70 font-medium tracking-tight">Observe the vibe.</p>
+            <p className="text-indigo-200/70 font-medium tracking-tight">Understand the person.</p>
+            <p className="text-white font-bold text-lg tracking-tight">Then Decide.</p>
           </div>
-          <p className="text-[10px] text-slate-400 uppercase tracking-[0.2em] pt-4 font-bold">
-            A social space for serious intentions.
-          </p>
         </div>
 
-        <div className="space-y-4 pt-6">
-          {/* GOOGLE BUTTON - Iron-Clad Layout */}
-          <button
-            type="button"
-            onClick={handleGoogleLogin}
-            disabled={googleLoading || loading}
-            className="group relative flex w-full items-center justify-center gap-3 rounded-2xl bg-white border border-slate-200 px-4 py-4 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-all active:scale-[0.98] shadow-sm"
-          >
-            {googleLoading ? (
-              <Loader2 className="animate-spin h-5 w-5 text-slate-400" />
-            ) : (
-              <div className="flex items-center gap-3">
-                <img 
-                  src="https://www.svgrepo.com/show/475656/google-color.svg" 
-                  style={{ width: '20px', height: '20px' }} // Inline style for maximum enforcement
-                  className="shrink-0"
-                  alt="Google" 
+        {/* Glassmorphic Form Container */}
+        <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-8 shadow-2xl">
+          <div className="space-y-6">
+            {/* GOOGLE BUTTON - Iron-Clad Layout */}
+            <button
+              type="button"
+              onClick={handleGoogleLogin}
+              disabled={googleLoading || loading}
+              className="flex w-full items-center justify-center gap-3 rounded-2xl bg-white px-4 py-4 text-sm font-bold text-slate-900 transition-all active:scale-[0.98] shadow-lg"
+            >
+              {googleLoading ? (
+                <Loader2 className="animate-spin h-5 w-5 text-indigo-600" />
+              ) : (
+                <div className="flex items-center gap-3">
+                  <img 
+                    src="https://www.svgrepo.com/show/475656/google-color.svg" 
+                    style={{ width: '20px', height: '20px' }} 
+                    className="shrink-0"
+                    alt="Google" 
+                  />
+                  <span>Continue with Google</span>
+                </div>
+              )}
+            </button>
+
+            <div className="relative flex items-center gap-4 py-2">
+              <div className="h-px w-full bg-white/10" />
+              <span className="text-[10px] uppercase tracking-widest font-bold text-white/30 whitespace-nowrap">or email</span>
+              <div className="h-px w-full bg-white/10" />
+            </div>
+
+            {/* EMAIL FORM */}
+            <form className="space-y-3" onSubmit={handleAuth}>
+              <div className="space-y-2">
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Email address"
+                  className="w-full rounded-xl py-4 px-5 bg-white/5 border border-white/10 text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all text-sm"
                 />
-                <span>Continue with Google</span>
+                <input
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Password"
+                  className="w-full rounded-xl py-4 px-5 bg-white/5 border border-white/10 text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all text-sm"
+                />
               </div>
-            )}
-          </button>
 
-          <div className="relative py-2">
-            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-100"></div></div>
-            <div className="relative flex justify-center text-[10px] uppercase tracking-widest font-bold text-slate-300"><span className="bg-white px-4">or email</span></div>
-          </div>
+              {errorMsg && (
+                <div className="text-rose-400 text-[11px] bg-rose-500/10 p-3 rounded-xl border border-rose-500/20 font-medium text-center">
+                  {errorMsg}
+                </div>
+              )}
 
-          {/* EMAIL FORM */}
-          <form className="space-y-3" onSubmit={handleAuth}>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Email address"
-              className="w-full rounded-2xl py-4 px-5 bg-slate-50 border-transparent focus:bg-white focus:border-slate-200 focus:ring-0 transition-all text-sm font-medium"
-            />
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Password"
-              className="w-full rounded-2xl py-4 px-5 bg-slate-50 border-transparent focus:bg-white focus:border-slate-200 focus:ring-0 transition-all text-sm font-medium"
-            />
-
-            {errorMsg && (
-              <div className="text-rose-600 text-[11px] bg-rose-50 p-3 rounded-xl border border-rose-100 font-medium">
-                {errorMsg}
-              </div>
-            )}
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl py-4 font-bold shadow-xl shadow-indigo-600/20 transition-all active:scale-[0.98] flex justify-center items-center gap-2"
+              >
+                {loading ? <Loader2 className="animate-spin h-5 w-5" /> : (isSignUp ? 'Create Account' : 'Sign In')}
+                {!loading && <ArrowRight size={16} />}
+              </button>
+            </form>
 
             <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-slate-900 text-white rounded-2xl py-4 font-bold shadow-lg shadow-slate-200 hover:opacity-90 transition-all flex justify-center items-center gap-2 mt-2"
+              onClick={() => { setIsSignUp(!isSignUp); setErrorMsg(''); }}
+              className="w-full text-center text-[11px] font-bold text-white/40 hover:text-white uppercase tracking-widest pt-2 transition-colors"
             >
-              {loading ? <Loader2 className="animate-spin" /> : isSignUp ? 'Login or Get Started' : 'Sign In'}
+              {isSignUp ? 'Already have an account? Sign in' : 'New here? Create account'}
             </button>
-          </form>
-
-          <button
-            onClick={() => { setIsSignUp(!isSignUp); setErrorMsg(''); }}
-            className="w-full text-center text-[11px] font-bold text-slate-400 hover:text-slate-900 uppercase tracking-widest pt-4"
-          >
-            {isSignUp ? 'Already have an account? Sign in' : 'New here? Create account'}
-          </button>
+          </div>
         </div>
       </motion.div>
     </div>
