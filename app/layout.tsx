@@ -1,25 +1,35 @@
-import './globals.css'
-import { Playfair_Display, Inter } from 'next/font/google'
+import type { Metadata } from "next";
+import { Plus_Jakarta_Sans } from "next/font/google";
+import "./globals.css";
+import BottomNav from "@/components/BottomNav"; 
 
-const playfair = Playfair_Display({ subsets: ['latin'] })
-const inter = Inter({ subsets: ['latin'] })
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  variable: "--font-jakarta",
+  display: "swap",
+});
 
-export const metadata = {
-  title: 'WYTH',
-  description: 'A social space for serious intentions',
-}
+export const metadata: Metadata = {
+  title: "WYTH - Connect for Life",
+  description: "High-intent social network for relationships.",
+};
 
 export default function RootLayout({
   children,
-}: {
-  children: React.ReactNode
-}) {
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
-    <html lang="en" className="h-full w-full">
-      {/* Forced dark background on the BODY tag to prevent white borders */}
-      <body className={`${inter.className} bg-slate-950 text-white antialiased m-0 p-0 h-full w-full overflow-x-hidden`}>
-        {children}
+    // ADDED: suppressHydrationWarning prop here
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${jakarta.variable} font-sans antialiased bg-brand-bg text-slate-900`}>
+        <main className="min-h-screen flex flex-col relative pb-32">
+          {children}
+        </main>
+        
+        {/* RENDER THE NAV */}
+        <BottomNav />
       </body>
     </html>
-  )
+  );
 }

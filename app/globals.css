@@ -2,43 +2,110 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #f8fafc;
-    --foreground: #0f172a;
+    /* Define Core Brand Colors as CSS Variables */
+    --brand-bg: #F8FAFC;
+    --brand-blue: #1E3A8A;
+    --brand-gold: #D4AF37;
+    --brand-surface: #FFFFFF;
+    
+    --foreground: #0F172A;
+  }
+  
+  body {
+    background-color: var(--brand-bg);
+    color: var(--foreground);
+    /* Connects to the font variable from layout.tsx */
+    font-family: var(--font-jakarta), sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+@layer utilities {
+  /* SAFE MODE: Standard CSS Replacements 
+     We use direct CSS properties here to stop the "@apply" build errors.
+  */
 
-/* Hide Scrollbar but keep functionality */
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
-}
-.scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
+  /* WYTH Glassmorphism System */
+  .glass-panel {
+    background-color: rgba(255, 255, 255, 0.8); /* Replaces bg-white/80 */
+    backdrop-filter: blur(20px);               /* Replaces backdrop-blur-xl */
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  }
+  
+  .glass-dock {
+    background-color: rgba(255, 255, 255, 0.9); /* Replaces bg-white/90 */
+    backdrop-filter: blur(40px);
+    -webkit-backdrop-filter: blur(40px);
+    border-top: 1px solid #E2E8F0;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05);
+  }
 
-/* WYTH Brand Gradient */
-.bg-brand-gradient {
-  background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
-}
+  /* Typography */
+  .text-h1 {
+    font-size: 1.5rem;
+    line-height: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    color: var(--brand-blue);
+  }
+  
+  .text-h2 {
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    color: #0F172A;
+  }
 
-/* Glassmorphism */
-.glass-panel {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  /* Buttons */
+  .btn-primary {
+    height: 3rem;
+    border-radius: 0.75rem;
+    background-color: var(--brand-blue);
+    color: #ffffff;
+    font-weight: 700;
+    letter-spacing: 0.025em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    box-shadow: 0 10px 15px -3px rgba(30, 58, 138, 0.1);
+  }
+  
+  .btn-primary:active {
+    transform: scale(0.95);
+  }
+
+  .btn-gold {
+    height: 3rem;
+    border-radius: 0.75rem;
+    background: linear-gradient(to right, #eab308, #d97706); /* Yellow-500 to Amber-600 */
+    color: #ffffff;
+    font-weight: 700;
+    letter-spacing: 0.025em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    box-shadow: 0 10px 15px -3px rgba(245, 158, 11, 0.2);
+  }
+  
+  .btn-gold:active {
+    transform: scale(0.95);
+  }
+
+  /* Utilities */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 }

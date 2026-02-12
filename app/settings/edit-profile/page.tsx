@@ -1,348 +1,348 @@
-'use client'
-import { useState, useEffect, useRef } from 'react'
+"use client";
 
-// RELATIVE IMPORTS
-import { supabase } from '../../../utils/supabase/client'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
-
-import { 
+import { useEffect, useState } from "react";
+import { supabase } from "@/utils/supabase/client";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import {
   ArrowLeft,
   Loader2,
   Sparkles,
-  User,
+  Camera,
+  Lock,
+  Globe,
   Briefcase,
-  Coffee,
-  Shield,
   MapPin,
-  Phone,
-  Lock
-} from 'lucide-react'
+  CheckCircle2,
+  RefreshCw,
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
-import AvatarUpload from '../../../components/AvatarUpload'
-import { generateBioAction, type BioTone } from '../../actions/generateBio'
+// IMPORT YOUR EXISTING SERVER ACTION
+// Ensure the path matches where you saved generateBio.ts. 
+// Standard Next.js structure suggests: '@/app/actions/generateBio'
+import { generateBioAction, type BioTone } from "@/app/actions/generateBio";
 
-// --- CONSTANTS ---
-const KNOWN_CITIES = [
-  // 🇮🇳 INDIA — Metros & Tier 1
-  "Mumbai","Delhi NCR","New Delhi","Gurugram","Noida","Faridabad","Ghaziabad",
-  "Bangalore","Hyderabad","Chennai","Kolkata","Pune","Ahmedabad","Surat","Vadodara",
-  "Jaipur","Udaipur","Jodhpur","Ajmer",
-  "Chandigarh","Mohali","Panchkula",
-  "Lucknow","Kanpur","Agra","Varanasi","Prayagraj","Noida Extension",
-  "Indore","Bhopal","Jabalpur","Gwalior",
-  "Bhubaneswar","Cuttack",
-  "Patna","Gaya","Muzaffarpur",
-  "Ranchi","Jamshedpur","Dhanbad",
-  "Raipur","Bilaspur",
-  "Nagpur","Nashik","Aurangabad","Solapur","Kolhapur",
-  "Thane","Navi Mumbai","Kalyan","Dombivli",
-  "Amritsar","Ludhiana","Jalandhar","Patiala",
-  "Dehradun","Haridwar","Roorkee",
-  "Shimla","Solan",
-  "Srinagar","Jammu",
-  "Guwahati","Silchar","Dibrugarh",
-  "Shillong",
-  "Imphal",
-  "Aizawl",
-  "Kohima","Dimapur",
-  "Agartala",
-  "Gangtok",
-  "Itanagar",
-  "Panaji","Margao","Vasco da Gama",
-  "Thiruvananthapuram","Kochi","Ernakulam","Thrissur","Kozhikode",
-  "Coimbatore","Madurai","Trichy","Salem","Erode","Vellore","Tirunelveli",
-  "Tirupati","Vijayawada","Guntur","Visakhapatnam","Rajahmundry","Kakinada",
-  "Warangal","Nizamabad","Karimnagar",
-  "Mangaluru","Udupi","Mysuru","Hubballi","Belagavi","Davangere","Shivamogga",
-  "Hisar","Rohtak","Panipat","Sonipat","Karnal",
-  "Rewari","Bhiwani",
-  "Alwar","Bharatpur",
-  "Siliguri","Asansol","Durgapur",
-  "Howrah","Hooghly",
-  "Kharagpur",
-  "Port Blair",
-  "Leh",
-  "Kargil",
+export default function EditProfilePage() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [generatingBio, setGeneratingBio] = useState(false);
+  
+  // New State for Tone Selection
+  const [selectedTone, setSelectedTone] = useState<BioTone>('Witty');
 
-  // 🌍 INTERNATIONAL — Major Global Cities
-  // 🇺🇸 USA
-  "New York","San Francisco","San Jose","Los Angeles","San Diego",
-  "Seattle","Redmond","Bellevue",
-  "Chicago","Austin","Dallas","Houston",
-  "Boston","Cambridge",
-  "Washington DC","Arlington","Reston",
-  "Atlanta","Miami","Orlando",
-  "San Mateo","Mountain View","Sunnyvale","Palo Alto","Cupertino",
-  "Fremont","Milpitas",
-  "Newark","Jersey City","Edison","Princeton",
-  "Raleigh","Durham","Chapel Hill",
-
-  // 🇨🇦 Canada
-  "Toronto","Mississauga","Brampton","Scarborough",
-  "Vancouver","Burnaby","Surrey","Richmond",
-  "Calgary","Edmonton",
-  "Montreal","Laval",
-  "Ottawa","Waterloo","Kitchener",
-
-  // 🇬🇧 UK
-  "London","Greater London","Canary Wharf",
-  "Manchester","Birmingham","Leeds","Sheffield",
-  "Reading","Slough","Wembley",
-  "Milton Keynes","Oxford","Cambridge",
-  "Leicester","Nottingham",
-
-  // 🇦🇪 UAE
-  "Dubai","Abu Dhabi","Sharjah","Ajman","Al Ain",
-  "Ras Al Khaimah","Fujairah",
-
-  // 🇦🇺 Australia
-  "Sydney","Melbourne","Brisbane","Perth","Adelaide",
-  "Canberra","Parramatta",
-
-  // 🇳🇿 New Zealand
-  "Auckland","Wellington","Christchurch",
-
-  // 🇩🇪 Germany
-  "Berlin","Munich","Frankfurt","Hamburg","Stuttgart","Dusseldorf",
-
-  // 🇫🇷 France
-  "Paris","La Defense","Lyon","Marseille","Nice",
-
-  // 🇳🇱 Netherlands
-  "Amsterdam","Rotterdam","The Hague","Utrecht",
-
-  // 🇸🇬 Singapore
-  "Singapore",
-
-  // 🇯🇵 Japan
-  "Tokyo","Yokohama","Osaka","Kyoto","Nagoya",
-
-  // 🇨🇳 China / HK
-  "Hong Kong","Shenzhen","Shanghai","Beijing","Guangzhou",
-
-  // 🇮🇪 Ireland
-  "Dublin","Cork","Galway",
-
-  // 🇮🇹 Italy
-  "Milan","Rome","Turin","Florence",
-
-  // 🇪🇸 Spain
-  "Barcelona","Madrid","Valencia",
-
-  // 🇨🇭 Switzerland
-  "Zurich","Geneva","Basel",
-
-  // 🇸🇪 Sweden
-  "Stockholm","Gothenburg",
-
-  // 🇳🇴 Norway
-  "Oslo",
-
-  // 🇩🇰 Denmark
-  "Copenhagen",
-
-  // 🇧🇪 Belgium
-  "Brussels",
-
-  // 🇵🇹 Portugal
-  "Lisbon","Porto",
-
-  // 🇿🇦 South Africa
-  "Johannesburg","Cape Town","Pretoria",
-
-  // 🇶🇦 Qatar
-  "Doha",
-
-  // 🇸🇦 Saudi Arabia
-  "Riyadh","Jeddah",
-
-  // 🇲🇾 Malaysia
-  "Kuala Lumpur","Petaling Jaya",
-
-  // 🇮🇩 Indonesia
-  "Jakarta","Bali",
-
-  // 🇹🇭 Thailand
-  "Bangkok",
-
-  // 🇰🇷 South Korea
-  "Seoul",
-
-  // 🇧🇷 Brazil
-  "Sao Paulo","Rio de Janeiro",
-
-  // 🇲🇽 Mexico
-  "Mexico City",
-
-  // 🇷🇺 Russia
-  "Moscow","Saint Petersburg"
-]
-
-// --- TYPES ---
-type ProfileSignals = {
-  incomeSignal?: { min: number; max: number }
-  religionSignal?: string
-  familyTypeSignal?: string
-}
-
-type ProfileData = {
-  full_name: string
-  city: string
-  city_display: string
-  city_normalized: string
-  city_category: 'known' | 'other' | ''
-  phone: string
-  gender: string
-  intent: string
-  avatar_url: string | null
-  bio: string
-  jobTitle: string
-  company: string
-  industry: string
-  careerGhostMode: boolean
-  diet: string
-  drink: string
-  smoke: string
-  signals: ProfileSignals
-}
-
-export default function EditProfileDashboard() {
-  const router = useRouter()
-
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [user, setUser] = useState<any>(null)
-
-  const [aiLoading, setAiLoading] = useState(false)
-
-  const [cityQuery, setCityQuery] = useState('')
-  const [showCityList, setShowCityList] = useState(false)
-  const cityWrapperRef = useRef<HTMLDivElement>(null)
-
-  const [data, setData] = useState<ProfileData>({
-    full_name: '',
-    city: '',
-    city_display: '',
-    city_normalized: '',
-    city_category: '',
-    phone: '',
-    gender: '',
-    intent: '',
-    avatar_url: null,
-    bio: '',
-    jobTitle: '',
-    company: '',
-    industry: '',
-    careerGhostMode: true,
-    diet: '',
-    drink: '',
-    smoke: '',
-    signals: { incomeSignal: { min: 12, max: 20 } }
-  })
-
-  // FETCH PROFILE
-  useEffect(() => {
-    const fetchData = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return router.push('/login')
-      setUser(user)
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single()
-
-      if (profile) {
-        setData(prev => ({
-          ...prev,
-          ...profile,
-          bio: profile.bio || ''
-        }))
-        setCityQuery(profile.city_display || profile.city || '')
-      }
-
-      setLoading(false)
-    }
-    fetchData()
-  }, [])
-
-  const filteredCities = KNOWN_CITIES.filter(c =>
-    c.toLowerCase().includes(cityQuery.toLowerCase())
-  )
-
-  const selectCity = (city: string, type: 'known' | 'other') => {
-    if (type === 'known') {
-      setData(prev => ({
-        ...prev,
-        city,
-        city_display: city,
-        city_normalized: city.toLowerCase(),
-        city_category: 'known'
-      }))
-      setCityQuery(city)
-    } else {
-      const clean = cityQuery.trim()
-      setData(prev => ({
-        ...prev,
-        city: clean,
-        city_display: `${clean} (Other)`,
-        city_normalized: `${clean.toLowerCase()}_other`,
-        city_category: 'other'
-      }))
-      setCityQuery(clean)
-    }
-    setShowCityList(false)
-  }
+  // Form State
+  const [formData, setFormData] = useState({
+    full_name: "",
+    job_title: "",
+    company: "",
+    city: "",
+    bio: "",
+    intent: "dating_marriage",
+    income_tier: "Hidden",
+  });
 
   useEffect(() => {
-    const handleClickOutside = (e: any) => {
-      if (cityWrapperRef.current && !cityWrapperRef.current.contains(e.target)) {
-        setShowCityList(false)
+    const fetchProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return router.push("/login");
+
+      const { data } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single();
+
+      if (data) {
+        setFormData({
+          full_name: data.full_name || "",
+          job_title: data.job_title || "",
+          company: data.company || "",
+          city: data.city || "",
+          bio: data.bio || "",
+          intent: data.intent || "dating_marriage",
+          income_tier: data.income_tier || "Hidden",
+        });
       }
+      setLoading(false);
+    };
+    fetchProfile();
+  }, [router]);
+
+  // --- CONNECTED TO YOUR EXISTING GENERATEBIO.TS ---
+  const handleGenerateBio = async () => {
+    // 1. Validation based on your Server Action's rule (< 5 chars)
+    if (!formData.bio || formData.bio.length < 5) {
+        alert("Please write a short rough draft first (e.g., 'I like coffee and hiking'), then let AI polish it!");
+        return;
     }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
+
+    setGeneratingBio(true);
+    
+    try {
+        // 2. Call your existing Server Action
+        const polishedBio = await generateBioAction(formData.bio, selectedTone);
+        
+        if (polishedBio) {
+            setFormData((prev) => ({ ...prev, bio: polishedBio }));
+        }
+    } catch (error) {
+        console.error(error);
+        alert("AI is taking a break. Please try again.");
+    }
+    
+    setGeneratingBio(false);
+  };
 
   const handleSave = async () => {
-    setSaving(true)
-    await supabase.from('profiles').update(data).eq('id', user.id)
-    setSaving(false)
-    router.push('/profile')
-  }
+    setSaving(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
 
-  const handleAI = async (tone: BioTone) => {
-    setAiLoading(true)
-    const polished = await generateBioAction(data.bio, tone)
-    setData(prev => ({ ...prev, bio: polished }))
-    setAiLoading(false)
-  }
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        full_name: formData.full_name,
+        job_title: formData.job_title,
+        company: formData.company,
+        city: formData.city,
+        bio: formData.bio,
+        intent: formData.intent,
+      })
+      .eq("id", user.id);
 
-  if (loading) {
+    if (!error) {
+      setTimeout(() => {
+        setSaving(false);
+        router.push("/profile");
+      }, 500);
+    } else {
+      alert("Error saving profile");
+      setSaving(false);
+    }
+  };
+
+  if (loading)
     return (
-      <div className="h-screen flex items-center justify-center">
-        <Loader2 className="animate-spin text-slate-400" />
+      <div className="h-screen flex items-center justify-center bg-brand-bg">
+        <Loader2 className="animate-spin text-brand-blue" />
       </div>
-    )
-  }
+    );
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-24">
-      <div className="bg-white px-4 py-4 sticky top-0 z-20 border-b flex justify-between">
-        <div className="flex items-center gap-3">
-          <Link href="/settings" className="p-2 rounded-full hover:bg-slate-50">
-            <ArrowLeft size={20} />
-          </Link>
-          <h1 className="font-bold">Edit Profile</h1>
-        </div>
-        <button onClick={handleSave} className="text-blue-600 font-bold">
-          {saving ? 'Saving…' : 'Save'}
-        </button>
+    <div className="min-h-screen bg-brand-bg pb-32">
+      {/* 1. HEADER */}
+      <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-slate-200 px-4 py-4 flex justify-between items-center">
+        <Link
+          href="/profile"
+          className="p-2 -ml-2 text-slate-500 hover:text-slate-900 transition"
+        >
+          <ArrowLeft size={22} />
+        </Link>
+        <h1 className="font-display font-bold text-slate-900">Edit Identity</h1>
+        <div className="w-8"></div>
       </div>
 
-      {/* REST OF UI UNCHANGED */}
+      <div className="max-w-md mx-auto px-4 py-6 space-y-6">
+        {/* 2. PHOTO UPLOAD */}
+        <div className="flex flex-col items-center">
+          <div className="relative group cursor-pointer">
+             <div className="w-28 h-28 rounded-full bg-slate-100 border-4 border-white shadow-lg overflow-hidden relative">
+                <img 
+                  src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${formData.full_name}`}
+                  className="w-full h-full object-cover opacity-90 group-hover:opacity-60 transition-opacity"
+                  alt="Avatar"
+                />
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Camera className="text-slate-600" size={24}/>
+                </div>
+             </div>
+             <div className="absolute bottom-0 right-0 bg-brand-blue text-white p-2 rounded-full border-2 border-white shadow-md">
+                <Camera size={14} />
+             </div>
+          </div>
+          <p className="text-xs text-slate-400 mt-3 font-medium">Tap to change avatar</p>
+        </div>
+
+        {/* 3. THE "BASICS" CARD */}
+        <section className="bg-white rounded-[1.5rem] border border-slate-100 p-5 shadow-sm space-y-4">
+          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">The Basics</h3>
+          
+          <InputGroup label="Full Name">
+             <input 
+                value={formData.full_name}
+                onChange={(e) => setFormData({...formData, full_name: e.target.value})}
+                className="w-full bg-transparent outline-none text-slate-900 font-bold placeholder:text-slate-300"
+                placeholder="Your Name"
+             />
+          </InputGroup>
+
+          <InputGroup label="Current City" icon={<MapPin size={14} className="text-amber-500"/>}>
+             <input 
+                value={formData.city}
+                onChange={(e) => setFormData({...formData, city: e.target.value})}
+                className="w-full bg-transparent outline-none text-slate-900 font-medium placeholder:text-slate-300"
+                placeholder="e.g. Mumbai"
+             />
+          </InputGroup>
+        </section>
+
+        {/* 4. THE "WORK" CARD */}
+        <section className="bg-white rounded-[1.5rem] border border-slate-100 p-5 shadow-sm space-y-4">
+          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Career</h3>
+          
+          <div className="grid grid-cols-1 gap-4">
+             <InputGroup label="Job Title" icon={<Briefcase size={14} className="text-blue-500"/>}>
+                <input 
+                    value={formData.job_title}
+                    onChange={(e) => setFormData({...formData, job_title: e.target.value})}
+                    className="w-full bg-transparent outline-none text-slate-900 font-medium placeholder:text-slate-300"
+                    placeholder="e.g. Product Manager"
+                />
+             </InputGroup>
+             
+             <InputGroup label="Company">
+                <input 
+                    value={formData.company}
+                    onChange={(e) => setFormData({...formData, company: e.target.value})}
+                    className="w-full bg-transparent outline-none text-slate-900 font-medium placeholder:text-slate-300"
+                    placeholder="e.g. Google"
+                />
+             </InputGroup>
+          </div>
+        </section>
+
+        {/* 5. THE AI BIO STUDIO (UPDATED) */}
+        <section className="bg-gradient-to-br from-indigo-50 to-white rounded-[1.5rem] border border-indigo-100 p-5 shadow-sm relative overflow-hidden">
+           <div className="flex flex-col gap-3 mb-3">
+              <div className="flex justify-between items-center">
+                  <h3 className="text-xs font-bold text-indigo-400 uppercase tracking-widest">Your Vibe (Bio)</h3>
+                  {/* Magic Button */}
+                  <button 
+                    onClick={handleGenerateBio}
+                    disabled={generatingBio || !formData.bio}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-indigo-100 rounded-full shadow-sm active:scale-95 transition-transform disabled:opacity-50"
+                  >
+                     {generatingBio ? <Loader2 size={12} className="animate-spin text-indigo-600"/> : <Sparkles size={12} className="text-amber-500 fill-amber-500"/>}
+                     <span className="text-[10px] font-bold text-indigo-600 uppercase">
+                        {generatingBio ? "Polishing..." : "Rewrite with AI"}
+                     </span>
+                  </button>
+              </div>
+
+              {/* Tone Selector */}
+              <div className="flex gap-2 p-1 bg-white/60 rounded-lg w-fit">
+                  {(['Chill', 'Witty', 'Romantic'] as BioTone[]).map((tone) => (
+                      <button
+                        key={tone}
+                        onClick={() => setSelectedTone(tone)}
+                        className={`text-[10px] font-bold px-3 py-1 rounded-md transition-all ${selectedTone === tone ? 'bg-indigo-100 text-indigo-700' : 'text-slate-400 hover:text-slate-600'}`}
+                      >
+                        {tone}
+                      </button>
+                  ))}
+              </div>
+           </div>
+           
+           <textarea 
+              value={formData.bio}
+              onChange={(e) => setFormData({...formData, bio: e.target.value})}
+              className="w-full bg-white/50 border border-indigo-100/50 rounded-xl p-3 text-sm text-slate-700 leading-relaxed focus:bg-white focus:border-indigo-200 focus:ring-2 focus:ring-indigo-100 outline-none transition-all placeholder:text-slate-400 min-h-[100px] resize-none"
+              placeholder="Write a rough draft (e.g. 'I like coffee & coding'), then click Rewrite!"
+           />
+           <p className="text-[10px] text-slate-400 mt-2 text-right">
+              {formData.bio.length}/150 Characters
+           </p>
+        </section>
+
+        {/* 6. INTENT SELECTOR */}
+        <section className="bg-white rounded-[1.5rem] border border-slate-100 p-5 shadow-sm space-y-3">
+           <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Current Intent</h3>
+           
+           <div className="flex gap-2">
+              <IntentOption 
+                 label="Dating" 
+                 selected={formData.intent === 'dating'} 
+                 onClick={() => setFormData({...formData, intent: 'dating'})}
+              />
+              <IntentOption 
+                 label="Marriage" 
+                 selected={formData.intent === 'ready_marriage'} 
+                 onClick={() => setFormData({...formData, intent: 'ready_marriage'})}
+              />
+           </div>
+        </section>
+
+        {/* 7. PRIVATE SIGNALS (Locked) */}
+        <section className="bg-slate-50 rounded-[1.5rem] border border-slate-200 p-5 space-y-4 opacity-70 cursor-not-allowed">
+            <div className="flex items-center gap-2 mb-2">
+                <Lock size={14} className="text-slate-400"/>
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Private Signals</h3>
+            </div>
+            
+            <div className="bg-white p-3 rounded-xl border border-slate-200 flex items-center justify-between">
+                <div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase">Income Range</p>
+                    <p className="text-sm font-bold text-slate-900">₹20L - 30L</p>
+                </div>
+                <div className="p-2 bg-slate-100 rounded-full">
+                    <Globe size={14} className="text-slate-400"/>
+                </div>
+            </div>
+            <p className="text-[10px] text-slate-400 text-center">
+                To edit Private Signals, verify via Desktop.
+            </p>
+        </section>
+      </div>
+
+      {/* 8. FLOATING SAVE DOCK */}
+      <AnimatePresence>
+        <motion.div 
+            initial={{ y: 100 }}
+            animate={{ y: 0 }}
+            className="fixed bottom-6 left-0 right-0 px-6 z-50"
+        >
+            <button 
+                onClick={handleSave}
+                disabled={saving}
+                className="w-full h-14 bg-slate-900 text-white font-bold rounded-2xl shadow-xl shadow-slate-900/20 flex items-center justify-center gap-3 active:scale-95 transition-transform"
+            >
+                {saving ? (
+                    <Loader2 className="animate-spin" />
+                ) : (
+                    <>
+                        <CheckCircle2 size={20} className="text-emerald-400"/> Save Changes
+                    </>
+                )}
+            </button>
+        </motion.div>
+      </AnimatePresence>
     </div>
-  )
+  );
+}
+
+// --- SUB COMPONENTS ---
+
+function InputGroup({ label, icon, children }: { label: string, icon?: React.ReactNode, children: React.ReactNode }) {
+    return (
+        <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 focus-within:bg-white focus-within:border-brand-blue/30 focus-within:ring-2 focus-within:ring-brand-blue/10 transition-all group">
+            <div className="flex items-center gap-2 mb-1">
+                {icon}
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider group-focus-within:text-brand-blue transition-colors">{label}</span>
+            </div>
+            {children}
+        </div>
+    )
+}
+
+function IntentOption({ label, selected, onClick }: { label: string, selected: boolean, onClick: () => void }) {
+    return (
+        <button 
+            onClick={onClick}
+            className={`flex-1 py-3 rounded-xl text-sm font-bold border transition-all ${selected ? 'bg-brand-blue text-white border-brand-blue shadow-md' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'}`}
+        >
+            {label}
+        </button>
+    )
 }

@@ -53,134 +53,416 @@ export default function LoginPage() {
     }
   }
 
-  // --- RESPONSIVE STYLES ---
+  // === PREMIUM GLASSMORPHISM STYLES ===
   const containerStyle: React.CSSProperties = {
-    minHeight: '100dvh', // Uses Dynamic Viewport Height for Mobile support
+    minHeight: '100dvh',
     width: '100%',
-    backgroundColor: '#020617', 
-    display: 'flex', 
-    flexDirection: 'column', 
-    alignItems: 'center', 
+    background: 'linear-gradient(135deg, #E0E7FF 0%, #DBEAFE 25%, #FFFFFF 50%, #E0F2FE 75%, #DBEAFE 100%)',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
     justifyContent: 'center',
     padding: '20px',
     position: 'relative',
     overflow: 'hidden'
   }
 
-  // UPDATED: Invisible Box
-  const boxStyle: React.CSSProperties = {
-    width: '100%', 
-    maxWidth: '380px', 
-    backgroundColor: 'transparent', // Transparent background
-    border: 'none',                 // No border
-    padding: '24px 0',              // Removed side padding for cleaner alignment
+  const glassCardStyle: React.CSSProperties = {
+    width: '100%',
+    maxWidth: '420px',
+    background: 'rgba(255, 255, 255, 0.75)',
+    backdropFilter: 'blur(20px)',
+    WebkitBackdropFilter: 'blur(20px)',
+    border: '1px solid rgba(255, 255, 255, 0.5)',
+    borderRadius: '24px',
+    padding: '40px',
+    boxShadow: '0 8px 32px rgba(31, 41, 55, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.5)',
     zIndex: 10,
     marginTop: '30px',
+    boxSizing: 'border-box'
+  }
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%',
+    padding: '14px 16px',
+    borderRadius: '12px',
+    border: '1.5px solid rgba(99, 102, 241, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    color: '#1e3a8a',
+    fontSize: '15px',
+    outline: 'none',
+    transition: 'all 0.2s ease',
+    fontFamily: 'inherit',
+    textAlign: 'left',
+    boxSizing: 'border-box'
+  }
+
+  const googleButtonStyle: React.CSSProperties = {
+    width: '100%',
+    padding: '14px 16px',
+    backgroundColor: 'white',
+    borderRadius: '12px',
+    border: '1.5px solid rgba(99, 102, 241, 0.2)',
     display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center'
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '12px',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+    boxShadow: '0 2px 8px rgba(79, 70, 229, 0.1)',
+    fontFamily: 'inherit',
+    boxSizing: 'border-box'
+  }
+
+  const submitButtonStyle: React.CSSProperties = {
+    width: '100%',
+    padding: '14px 16px',
+    marginTop: '10px',
+    background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)',
+    borderRadius: '12px',
+    border: 'none',
+    color: 'white',
+    fontWeight: '600',
+    fontSize: '15px',
+    cursor: 'pointer',
+    boxShadow: '0 4px 16px rgba(79, 70, 229, 0.3)',
+    transition: 'all 0.2s ease',
+    fontFamily: 'inherit',
+    boxSizing: 'border-box'
   }
 
   return (
     <div style={containerStyle}>
       
-      {/* Background Gradients */}
-      <div style={{ position: 'fixed', top: '-20%', left: '-20%', width: '70%', height: '70%', background: '#4f46e5', filter: 'blur(150px)', borderRadius: '50%', opacity: 0.15, pointerEvents: 'none' }} />
-      <div style={{ position: 'fixed', bottom: '-20%', right: '-20%', width: '70%', height: '70%', background: '#2563eb', filter: 'blur(150px)', borderRadius: '50%', opacity: 0.1, pointerEvents: 'none' }} />
+      {/* Gradient Orbs */}
+      <div style={{ 
+        position: 'fixed', 
+        top: '-10%', 
+        left: '-10%', 
+        width: '50%', 
+        height: '50%', 
+        background: 'radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 70%)', 
+        filter: 'blur(60px)', 
+        pointerEvents: 'none',
+        zIndex: 1
+      }} />
+      <div style={{ 
+        position: 'fixed', 
+        bottom: '-10%', 
+        right: '-10%', 
+        width: '50%', 
+        height: '50%', 
+        background: 'radial-gradient(circle, rgba(59, 130, 246, 0.12) 0%, transparent 70%)', 
+        filter: 'blur(60px)', 
+        pointerEvents: 'none',
+        zIndex: 1
+      }} />
 
-      {/* 1. BRAND SECTION */}
-      <div style={{ textAlign: 'center', zIndex: 10, marginTop: '-20px' }}>
-        <h1 style={{ fontFamily: 'serif', fontSize: '3.5rem', fontWeight: 'bold', color: 'white', letterSpacing: '-1px', marginBottom: '0' }}>
-          WYTH
-        </h1>
-        <p style={{ fontFamily: 'sans-serif', fontSize: '1.2rem', color: '#6366f1', marginTop: '0px', fontStyle: 'italic', opacity: 0.9 }}>
+      {/* Logo Section */}
+      <div style={{ 
+        textAlign: 'center', 
+        zIndex: 10, 
+        marginBottom: '20px',
+        width: '100%',
+        maxWidth: '420px'
+      }}>
+        <div style={{
+          width: '100%',
+          maxWidth: '280px',
+          margin: '0 auto 20px'
+        }}>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 100" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" aria-label="WYTH Logo">
+            <defs>
+              <linearGradient id="weldShine" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" style={{stopColor: '#1E3A8A', stopOpacity: 1}} />
+                <stop offset="50%" style={{stopColor: '#2E4F9E', stopOpacity: 1}} />
+                <stop offset="100%" style={{stopColor: '#1E3A8A', stopOpacity: 1}} />
+              </linearGradient>
+            </defs>
+            <style>
+              {`
+                .brand-blue { fill: #1E3A8A; }
+                .anchor-letter {
+                  opacity: 0;
+                  animation: riseUp 1s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+                }
+                .letter-y {
+                  opacity: 0;
+                  animation: riseUp 1s cubic-bezier(0.2, 0.8, 0.2, 1) 0.1s forwards;
+                }
+                .letter-t {
+                  opacity: 0;
+                  transform: translateX(20px) translateY(10px);
+                  animation: slideConnect 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) 0.3s forwards;
+                }
+                .fusion-joint {
+                  opacity: 0;
+                  fill: url(#weldShine);
+                  animation: weldFlash 1s ease-out 1.2s forwards;
+                }
+                @keyframes riseUp {
+                  from { opacity: 0; transform: translateY(15px); }
+                  to { opacity: 1; transform: translateY(0); }
+                }
+                @keyframes slideConnect {
+                  0% { opacity: 0; transform: translateX(25px) translateY(15px); }
+                  20% { opacity: 1; }
+                  100% { opacity: 1; transform: translateX(0) translateY(0); }
+                }
+                @keyframes weldFlash {
+                  0% { opacity: 0; }
+                  50% { opacity: 1; }
+                  100% { opacity: 0; }
+                }
+              `}
+            </style>
+            <g>
+              <path className="brand-blue anchor-letter" d="M10,30 Q10,28 12,28 L22,28 Q24,28 24.5,30 L34,68 L43.5,30 Q44,28 46,28 L54,28 Q56,28 56.5,30 L66,68 L75.5,30 Q76,28 78,28 L88,28 Q90,28 90,30 L80,78 Q79,82 75,82 L65,82 Q61,82 60,78 L50,42 L40,78 Q39,82 35,82 L25,82 Q21,82 20,78 Z" />
+              <path className="brand-blue letter-y" d="M105,30 Q105,28 107,28 L118,28 Q120,28 121,30 L134,55 L149,30 Q150,28 152,28 L166,28 Q168,28 168,30 L148,62 L148,78 Q148,82 144,82 L132,82 Q128,82 128,78 L128,62 Z" />
+              <path className="brand-blue letter-t" d="M163,28 L210,28 Q212,28 212,30 L212,40 Q212,42 210,42 L196,42 L196,78 Q196,82 192,82 L180,82 Q176,82 176,78 L176,42 L163,42 Q161,42 161,40 L161,30 Q161,28 163,28 Z" />
+              <path className="brand-blue anchor-letter" style={{animationDelay: '0.2s'}} d="M225,30 Q225,28 227,28 L239,28 Q241,28 241,30 L241,48 L274,48 L274,30 Q274,28 276,28 L288,28 Q290,28 290,30 L290,78 Q290,82 286,82 L274,82 Q270,82 270,78 L270,60 L241,60 L241,78 Q241,82 237,82 L225,82 Q221,82 221,78 Z" />
+              <rect className="fusion-joint" x="160" y="28" width="10" height="14" rx="2" />
+            </g>
+          </svg>
+        </div>
+
+        <p style={{ 
+          fontFamily: 'Georgia, serif', 
+          fontSize: 'clamp(1rem, 2.5vw, 1.15rem)',
+          color: '#4f46e5', 
+          marginTop: '12px',
+          fontStyle: 'bold',
+          fontWeight: '500',
+          letterSpacing: '0.3px'
+        }}>
           "A Social Space for Serious Intentions"
         </p>
 
-        <div style={{ marginTop: '25px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-          <p style={{ fontSize: '1.05rem', color: '#cbd5e1', letterSpacing: '0.5px', margin: 0 }}>Feel the Vibe.</p>
-          <p style={{ fontSize: '1.05rem', color: '#cbd5e1', letterSpacing: '0.5px', margin: 0 }}>Understand the Person.</p>
-          <p style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'white', textDecoration: 'underline', textDecorationColor: '#6366f1', textUnderlineOffset: '6px', marginTop: '4px' }}>
-            Decide.
+        <div style={{ 
+          marginTop: '20px', 
+          display: 'flex', 
+          flexDirection: 'column', 
+          gap: '4px' 
+        }}>
+          <p style={{ 
+            fontSize: 'clamp(0.9rem, 2vw, 1rem)', 
+            color: '#475569', 
+            letterSpacing: '0.3px', 
+            margin: 0,
+            fontWeight: '500'
+          }}>Sense the Vibe.</p>
+          <p style={{ 
+            fontSize: 'clamp(0.9rem, 2vw, 1rem)', 
+            color: '#475569', 
+            letterSpacing: '0.3px', 
+            margin: 0,
+            fontWeight: '500'
+          }}>Know the Person.</p>
+          <p style={{ 
+            fontSize: 'clamp(1rem, 2.2vw, 1.15rem)', 
+            fontWeight: '700', 
+            color: '#1e3a8a', 
+            textDecoration: 'underline', 
+            textDecorationColor: '#6366f1', 
+            textUnderlineOffset: '6px', 
+            marginTop: '4px' 
+          }}>
+            'FIND THE ONE'.
           </p>
         </div>
       </div>
 
-      {/* 2. INVISIBLE FORM CONTAINER */}
-      <div style={boxStyle}>
+      {/* Glassmorphism Form Card */}
+      <div style={glassCardStyle}>
 
-        {/* GOOGLE BUTTON */}
+        {/* Google Button */}
         <button
           onClick={handleGoogleLogin}
           disabled={googleLoading}
-          style={{ 
-            width: '100%', 
-            padding: '14px', 
-            backgroundColor: 'white', 
-            borderRadius: '12px', 
-            border: 'none', 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center', 
-            gap: '12px',
-            cursor: 'pointer',
-            transition: 'transform 0.1s'
+          style={googleButtonStyle}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-2px)'
+            e.currentTarget.style.boxShadow = '0 4px 12px rgba(79, 70, 229, 0.2)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)'
+            e.currentTarget.style.boxShadow = '0 2px 8px rgba(79, 70, 229, 0.1)'
           }}
         >
-          {googleLoading ? <Loader2 className="animate-spin text-slate-900"/> : (
+          {googleLoading ? (
+            <Loader2 className="animate-spin" style={{ color: '#1e3a8a', width: '20px', height: '20px' }}/>
+          ) : (
             <>
-              <img src="https://www.svgrepo.com/show/475656/google-color.svg" style={{ width: '20px', height: '20px' }} alt="G" />
-              <span style={{ color: '#0f172a', fontWeight: 'bold', fontSize: '14px' }}>Continue with Google</span>
+              <img 
+                src="https://www.svgrepo.com/show/475656/google-color.svg" 
+                style={{ width: '20px', height: '20px' }} 
+                alt="Google"
+              />
+              <span style={{ 
+                color: '#1e3a8a', 
+                fontWeight: '600', 
+                fontSize: '15px' 
+              }}>
+                Continue with Google
+              </span>
             </>
           )}
         </button>
 
-        {/* DIVIDER */}
-        <div style={{ display: 'flex', alignItems: 'center', width: '100%', margin: '24px 0', opacity: 0.4 }}>
-          <div style={{ height: '1px', flex: 1, backgroundColor: 'white' }}></div>
-          <span style={{ padding: '0 10px', fontSize: '11px', color: 'white', letterSpacing: '1px' }}>OR</span>
-          <div style={{ height: '1px', flex: 1, backgroundColor: 'white' }}></div>
+        {/* Divider */}
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          width: '100%', 
+          margin: '24px 0' 
+        }}>
+          <div style={{ 
+            height: '1px', 
+            flex: 1, 
+            background: 'linear-gradient(to right, transparent, rgba(99, 102, 241, 0.3), transparent)' 
+          }}></div>
+          <span style={{ 
+            padding: '0 12px', 
+            fontSize: '12px', 
+            color: '#64748b', 
+            letterSpacing: '1px',
+            fontWeight: '500'
+          }}>OR</span>
+          <div style={{ 
+            height: '1px', 
+            flex: 1, 
+            background: 'linear-gradient(to right, transparent, rgba(99, 102, 241, 0.3), transparent)' 
+          }}></div>
         </div>
 
-        {/* SIGN IN FORM */}
-        <form onSubmit={handleAuth} style={{ display: 'flex', flexDirection: 'column', gap: '14px', width: '100%' }}>
+        {/* Sign In Form */}
+        <form onSubmit={handleAuth} style={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          gap: '14px', 
+          width: '100%' 
+        }}>
           <input 
             type="email" 
             placeholder="Email Address" 
             value={email} 
             onChange={e => setEmail(e.target.value)}
-            style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.15)', backgroundColor: 'rgba(255,255,255,0.03)', color: 'white', fontSize: '14px', outline: 'none' }}
+            required
+            style={inputStyle}
+            onFocus={(e) => {
+              e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.5)'
+              e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99, 102, 241, 0.1)'
+            }}
+            onBlur={(e) => {
+              e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.2)'
+              e.currentTarget.style.boxShadow = 'none'
+            }}
           />
           <input 
             type="password" 
             placeholder="Password" 
             value={password} 
             onChange={e => setPassword(e.target.value)}
-            style={{ width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.15)', backgroundColor: 'rgba(255,255,255,0.03)', color: 'white', fontSize: '14px', outline: 'none' }}
+            required
+            style={inputStyle}
+            onFocus={(e) => {
+              e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.5)'
+              e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99, 102, 241, 0.1)'
+            }}
+            onBlur={(e) => {
+              e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.2)'
+              e.currentTarget.style.boxShadow = 'none'
+            }}
           />
 
-          {errorMsg && <p style={{ color: '#fb7185', fontSize: '12px', textAlign: 'center', marginTop: '5px' }}>{errorMsg}</p>}
+          {errorMsg && (
+            <div style={{
+              padding: '12px',
+              borderRadius: '8px',
+              backgroundColor: 'rgba(239, 68, 68, 0.1)',
+              border: '1px solid rgba(239, 68, 68, 0.2)'
+            }}>
+              <p style={{ 
+                color: '#dc2626', 
+                fontSize: '13px', 
+                textAlign: 'center',
+                margin: 0,
+                fontWeight: '500'
+              }}>
+                {errorMsg}
+              </p>
+            </div>
+          )}
 
           <button 
             type="submit" 
             disabled={loading}
-            style={{ width: '100%', padding: '14px', marginTop: '10px', backgroundColor: '#4f46e5', borderRadius: '12px', border: 'none', color: 'white', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer', boxShadow: '0 4px 12px rgba(79, 70, 229, 0.3)' }}
+            style={submitButtonStyle}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)'
+              e.currentTarget.style.boxShadow = '0 6px 20px rgba(30, 58, 138, 0.4)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)'
+              e.currentTarget.style.boxShadow = '0 4px 16px rgba(30, 58, 138, 0.3)'
+            }}
           >
-            {loading ? <Loader2 className="animate-spin mx-auto"/> : (isSignUp ? 'Create Account' : 'Sign In')}
+            {loading ? (
+              <Loader2 className="animate-spin" style={{ margin: '0 auto', width: '20px', height: '20px' }}/>
+            ) : (
+              isSignUp ? 'Create Account' : 'Sign In'
+            )}
           </button>
         </form>
 
-        {/* NEW HERE? */}
+        {/* Toggle Sign Up/Sign In */}
         <div style={{ textAlign: 'center', marginTop: '24px' }}>
           <button 
             onClick={() => setIsSignUp(!isSignUp)}
-            style={{ background: 'none', border: 'none', color: '#a5b4fc', fontSize: '13px', cursor: 'pointer', textDecoration: 'none' }}
+            style={{ 
+              background: 'none', 
+              border: 'none', 
+              color: '#6366f1', 
+              fontSize: '14px', 
+              cursor: 'pointer', 
+              textDecoration: 'none',
+              fontWeight: '500',
+              transition: 'color 0.2s ease',
+              fontFamily: 'inherit'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.color = '#4f46e5'}
+            onMouseLeave={(e) => e.currentTarget.style.color = '#6366f1'}
           >
             {isSignUp ? 'Already have an account? Sign In' : 'New Here? Sign Up'}
           </button>
         </div>
 
       </div>
+
+      {/* Responsive Media Queries */}
+      <style jsx>{`
+        @media (max-width: 480px) {
+          input, button {
+            font-size: 14px !important;
+          }
+        }
+        
+        @media (max-width: 390px) {
+          div[style*="padding: 40px"] {
+            padding: 32px 24px !important;
+          }
+        }
+        
+        input::placeholder {
+          color: #94a3b8;
+          opacity: 1;
+        }
+        
+        input:focus::placeholder {
+          color: #cbd5e1;
+        }
+      `}</style>
+
     </div>
   )
 }
