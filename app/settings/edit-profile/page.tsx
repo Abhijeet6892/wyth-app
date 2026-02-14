@@ -68,7 +68,7 @@ export default function EditProfilePage() {
   const [generatingBio, setGeneratingBio] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [uploadError, setUploadError] = useState("");
-  const [selectedTone, setSelectedTone] = useState<BioTone>('Witty');
+  const [selectedTone, setSelectedTone] = useState<BioTone>('Grounded');
   const [activeSection, setActiveSection] = useState<SectionType>('basic');
   const [user, setUser] = useState<any>(null);
 
@@ -773,7 +773,7 @@ export default function EditProfilePage() {
                 </div>
 
                 <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-                  {(['Chill', 'Witty', 'Romantic'] as BioTone[]).map(tone => (
+                {(['Grounded', 'Thoughtful', 'Warm'] as BioTone[]).map(tone => (
                     <button
                       key={tone}
                       onClick={() => setSelectedTone(tone)}

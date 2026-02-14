@@ -768,14 +768,64 @@ export default function MyProfilePage() {
                   fontSize: '36px',
                   fontWeight: '700'
                 }}>
-                  {profile?.vouches_count || 0}
-                </span>
-                <span style={{
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: '#94a3b8'
-                }}>
-                  Vouches
+                  {profile.vouches_count === 0 ? (
+  <div style={{
+    background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+    border: '2px dashed #d97706',
+    borderRadius: '16px',
+    padding: '20px',
+    textAlign: 'center'
+  }}>
+    <div style={{ fontSize: '32px', marginBottom: '8px' }}>🎯</div>
+    <div style={{ 
+      fontSize: '15px', 
+      fontWeight: '700', 
+      color: '#92400e', 
+      marginBottom: '6px' 
+    }}>
+      Build Your Trust Score
+    </div>
+    <div style={{ 
+      fontSize: '13px', 
+      color: '#78350f', 
+      marginBottom: '12px' 
+    }}>
+      Vouches: 0/5 to unlock Gold
+    </div>
+    <div style={{ 
+      fontSize: '12px', 
+      color: '#78350f', 
+      marginBottom: '12px', 
+      lineHeight: '1.5' 
+    }}>
+      Get vouched by connections to:<br/>
+      ✓ Unlock premium profiles<br/>
+      ✓ Increase match quality<br/>
+      ✓ Stand out from the crowd
+    </div>
+    <button style={{
+      background: '#d97706',
+      color: 'white',
+      padding: '8px 16px',
+      borderRadius: '8px',
+      border: 'none',
+      fontSize: '12px',
+      fontWeight: '600',
+      cursor: 'pointer'
+    }}>
+      How to Get Vouched →
+    </button>
+  </div>
+) : (
+  <div>
+    <span style={{ fontSize: '24px', fontWeight: '700' }}>
+      {profile.vouches_count}
+    </span>
+    <span style={{ fontSize: '14px', color: '#64748b', marginLeft: '8px' }}>
+      people have vouched for you
+    </span>
+  </div>
+)}
                 </span>
               </div>
               <p style={{
