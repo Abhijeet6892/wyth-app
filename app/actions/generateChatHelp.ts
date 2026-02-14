@@ -9,6 +9,9 @@ export type ChatMode =
   | "deepen_connection"   // Moving from casual to intentional
   | "end_connection";     // Graceful, dignified closure
 
+/** UI intent; map to ChatMode when calling generateChatHelp. */
+export type ChatIntent = "icebreaker" | "reply" | "decline";
+
 export type ChatTone = "Grounded" | "Thoughtful" | "Warm";
 
 /**

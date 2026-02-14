@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 
 // Ensure this path matches your file structure
-import { generateChatHelp, type ChatIntent, type ChatTone } from "../actions/generateChatHelp";
+import { generateChatHelp, type ChatIntent, type ChatMode, type ChatTone } from "../actions/generateChatHelp";
 
 function ChatContent() {
   const router = useRouter();
@@ -48,7 +48,7 @@ function ChatContent() {
   // AI States
   const [showAiMenu, setShowAiMenu] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
-  const [aiTone, setAiTone] = useState<ChatTone>("Chill");
+  const [aiTone, setAiTone] = useState<ChatTone>("Grounded");
 
   // --- 1. LOAD DATA (UNCHANGED) ---
   useEffect(() => {
@@ -65,10 +65,11 @@ function ChatContent() {
         setUserIsGold(profile?.is_gold || false);
 
         const { data } = await supabase
-          .from("connections")
-          .select(`*, profiles:receiver_id (id, full_name, is_gold, profile_signals, city, intent)`)
-          .or(`requester_id.eq.${user.id},receiver_id.eq.${user.id}`)
-          .eq("status", "accepted");
+  .from("connections")
+  .select(`*, profiles:receiver_id (id, full_name, avatar_url, is_gold, profile_signals, city, intent)`)
+  //                                                    ✅ Added avatar_url
+  .or(`requester_id.eq.${user.id},receiver_id.eq.${user.id}`)
+  .eq("status", "accepted");
 
         setConnections(data || []);
       }
@@ -133,19 +134,30 @@ function ChatContent() {
   const handleAiAssist = async (intent: ChatIntent) => {
     if (!activeChat) return;
     setAiLoading(true);
-
+  
     const lastMsg = messages.length > 0 ? messages[messages.length - 1].content : "";
-    const context = `${activeChat.profiles.city || ""} • ${activeChat.profiles.intent || ""}`;
-
+    
+    // Map intent to mode
+    const intentToMode: Record<ChatIntent, ChatMode> = {
+      icebreaker: "start_connection",
+      reply: "deepen_connection",
+      decline: "end_connection",
+    };
+    
+    // Build partner profile object
+    const partnerProfile = {
+      name: activeChat.profiles.full_name,
+      city: activeChat.profiles.city,
+      lastMessage: lastMsg,
+    };
+  
     try {
-      const suggestion = await generateChatHelp(
-        intent,
-        activeChat.profiles.full_name,
-        context,
-        lastMsg,
-        aiTone
+      const { primary } = await generateChatHelp(
+        intentToMode[intent],  // ✅ Correct: ChatMode
+        partnerProfile,        // ✅ Correct: object
+        aiTone                 // ✅ Correct: ChatTone
       );
-      setNewMessage(suggestion);
+      setNewMessage(primary);  // ✅ Correct: extract primary from result
       setShowAiMenu(false);
     } catch (e) {
       alert("AI Assistant is taking a break. Try typing manually.");
@@ -750,7 +762,7 @@ function ChatContent() {
                 gap: '4px',
                 marginBottom: '12px'
               }}>
-                {(["Chill", "Witty", "Romantic"] as ChatTone[]).map((t) => (
+                {(["Grounded", "Thoughtful", "Warm"] as ChatTone[]).map((t) => (
                   <button
                     key={t}
                     onClick={() => setAiTone(t)}
