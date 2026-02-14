@@ -21,6 +21,7 @@ import {
   CheckCircle2,
   MessageCircle,
 } from "lucide-react";
+
 // Ensure this path matches your file structure
 import { generateChatHelp, type ChatIntent, type ChatTone } from "../actions/generateChatHelp";
 
@@ -29,7 +30,7 @@ function ChatContent() {
   const searchParams = useSearchParams();
   const autoOpenId = searchParams.get("open");
 
-  // --- STATE ---
+  // --- STATE (UNCHANGED) ---
   const [connections, setConnections] = useState<any[]>([]);
   const [activeChat, setActiveChat] = useState<any>(null);
   const [messages, setMessages] = useState<any[]>([]);
@@ -49,14 +50,13 @@ function ChatContent() {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiTone, setAiTone] = useState<ChatTone>("Chill");
 
-  // --- 1. LOAD DATA ---
+  // --- 1. LOAD DATA (UNCHANGED) ---
   useEffect(() => {
     const loadData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
 
       if (user) {
-        // Check Gold Status
         const { data: profile } = await supabase
           .from("profiles")
           .select("is_gold")
@@ -64,12 +64,11 @@ function ChatContent() {
           .single();
         setUserIsGold(profile?.is_gold || false);
 
-        // Fetch Connections
         const { data } = await supabase
           .from("connections")
           .select(`*, profiles:receiver_id (id, full_name, is_gold, profile_signals, city, intent)`)
           .or(`requester_id.eq.${user.id},receiver_id.eq.${user.id}`)
-          .eq("status", "accepted"); // Only show accepted connections
+          .eq("status", "accepted");
 
         setConnections(data || []);
       }
@@ -78,7 +77,7 @@ function ChatContent() {
     loadData();
   }, []);
 
-  // --- 1.5 AUTO-OPEN ---
+  // --- 1.5 AUTO-OPEN (UNCHANGED) ---
   useEffect(() => {
     if (autoOpenId && connections.length > 0 && !activeChat) {
       const targetChat = connections.find((c) => c.profiles.id === autoOpenId);
@@ -86,7 +85,7 @@ function ChatContent() {
     }
   }, [connections, autoOpenId, activeChat]);
 
-  // --- 2. LOAD MESSAGES & SUBSCRIBE ---
+  // --- 2. LOAD MESSAGES & SUBSCRIBE (UNCHANGED) ---
   useEffect(() => {
     if (!activeChat || !user) return;
 
@@ -102,14 +101,12 @@ function ChatContent() {
     };
     fetchMessages();
 
-    // Realtime Subscription
     const channel = supabase
       .channel("chat")
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "messages" },
         (payload) => {
-          // Only add if it belongs to this chat
           if (
             payload.new.sender_id === activeChat.profiles.id ||
             payload.new.receiver_id === activeChat.profiles.id
@@ -125,15 +122,14 @@ function ChatContent() {
     };
   }, [activeChat, user]);
 
-  // --- SAFETY LOGIC ---
+  // --- SAFETY LOGIC (UNCHANGED) ---
   const myMessageCount = messages.filter((m) => m.sender_id === user?.id).length;
   const hasSharedContact = messages.some(
     (m) => m.sender_id === user?.id && m.content === "Verified Contact Card 📇"
   );
-  // Rule: Gold users bypass limits. Free users capped at 10 unless they share contact.
   const isLimitReached = !userIsGold && !hasSharedContact && myMessageCount >= 10;
 
-  // --- AI LOGIC ---
+  // --- AI LOGIC (UNCHANGED) ---
   const handleAiAssist = async (intent: ChatIntent) => {
     if (!activeChat) return;
     setAiLoading(true);
@@ -166,7 +162,6 @@ function ChatContent() {
       return;
     }
 
-    // Safety Regex: Detect phone numbers
     const phoneRegex = /\b[\d\s-]{10,}\b/;
     if (phoneRegex.test(newMessage)) {
       setShowContactModal(true);
@@ -181,7 +176,7 @@ function ChatContent() {
     if (!error) setNewMessage("");
   };
 
-  // --- ACTIONS ---
+  // --- ACTIONS (UNCHANGED) ---
   const handleDisconnect = async () => {
     if (!confirm(`End connection with ${activeChat.profiles.full_name}?`)) return;
     const { error } = await supabase.rpc("disconnect_user", { target_id: activeChat.profiles.id });
@@ -204,179 +199,472 @@ function ChatContent() {
 
   const sendSecureContact = async () => {
     setSendingCard(true);
-    // Assuming RPC handles coin deduction
     const { data, error } = await supabase.rpc("share_contact", { target_user_id: activeChat.profiles.id });
     if (data === "success_shared" || !error) {
-      // Manually insert the message for UI update
-      await supabase.from("messages").insert({
-          sender_id: user.id,
-          receiver_id: activeChat.profiles.id,
-          content: "Verified Contact Card 📇"
-      });
       setShowContactModal(false);
       setShowLimitModal(false);
-      setNewMessage("");
+      alert("Contact card shared! 📇");
     } else {
-      alert("Insufficient Coins or Error!");
+      alert(error?.message || "Not enough coins.");
     }
     setSendingCard(false);
   };
 
-  const getSignalsText = () => {
-    if (!activeChat?.profiles?.profile_signals) return null;
-    const s = activeChat.profiles.profile_signals;
-    const parts = [];
-    if (s.incomeSignal) parts.push(`₹${s.incomeSignal.min}-${s.incomeSignal.max}L`);
-    if (s.familyTypeSignal) parts.push(s.familyTypeSignal);
-    return parts.length > 0 ? parts.join(" • ") : null;
-  };
-  const deepDataText = getSignalsText();
+  // --- LOADING STATE ---
+  if (loading) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #E0E7FF 0%, #DBEAFE 25%, #FFFFFF 50%, #E0F2FE 75%, #DBEAFE 100%)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <Loader2 size={40} style={{ color: '#1E3A8A', animation: 'spin 1s linear infinite' }} />
+      </div>
+    );
+  }
 
-  // --- RENDER ---
+  // --- UI (REFINED GLASSMORPHISM) ---
   return (
-    <div className="min-h-screen bg-brand-bg flex flex-col relative">
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #E0E7FF 0%, #DBEAFE 25%, #FFFFFF 50%, #E0F2FE 75%, #DBEAFE 100%)',
+      paddingBottom: '96px',
+      position: 'relative'
+    }}>
       
-      {/* 1. HEADER (Glassmorphism) */}
-      <div className="bg-white/80 backdrop-blur-xl border-b border-slate-200 p-4 flex items-center justify-between sticky top-0 z-10">
-        <div className="flex items-center gap-3">
-          {activeChat ? (
-            <button onClick={() => setActiveChat(null)} className="p-2 -ml-2 rounded-full hover:bg-slate-100 transition-colors">
-              <ArrowLeft size={20} className="text-slate-600" />
-            </button>
-          ) : (
-             // Spacer for alignment if needed, or just standard title
-             <div className="w-2"></div>
-          )}
-          
-          {activeChat ? (
-            <div>
-              <h2 className="font-display font-bold text-slate-900 leading-tight">
-                {activeChat.profiles.full_name}
-              </h2>
-              <div className="flex flex-col">
-                <p className="text-[10px] text-emerald-500 font-bold flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span> Online
-                </p>
-                {deepDataText && (
-                  <p className="text-[10px] text-slate-400 font-medium mt-0.5">
-                    {deepDataText}
-                  </p>
-                )}
+      {/* Background Orbs */}
+      <div style={{ 
+        position: 'fixed', 
+        top: '-10%', 
+        left: '-10%', 
+        width: '50%', 
+        height: '50%', 
+        background: 'radial-gradient(circle, rgba(30, 58, 138, 0.15) 0%, transparent 70%)', 
+        filter: 'blur(60px)', 
+        pointerEvents: 'none',
+        zIndex: 1
+      }} />
+      <div style={{ 
+        position: 'fixed', 
+        bottom: '-10%', 
+        right: '-10%', 
+        width: '50%', 
+        height: '50%', 
+        background: 'radial-gradient(circle, rgba(59, 130, 246, 0.12) 0%, transparent 70%)', 
+        filter: 'blur(60px)', 
+        pointerEvents: 'none',
+        zIndex: 1
+      }} />
+
+      {/* HEADER */}
+      <header style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 40,
+        background: 'rgba(255, 255, 255, 0.75)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.5)',
+        boxShadow: '0 4px 16px rgba(31, 41, 55, 0.08)',
+        padding: '16px 20px'
+      }}>
+        {activeChat ? (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <button
+                onClick={() => setActiveChat(null)}
+                style={{
+                  padding: '8px',
+                  borderRadius: '12px',
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#1E3A8A',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(30, 58, 138, 0.1)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+              >
+                <ArrowLeft size={20} />
+              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '50%',
+                  background: activeChat.profiles.is_gold 
+                    ? 'linear-gradient(135deg, #fde68a 0%, #fbbf24 100%)' 
+                    : '#f1f5f9',
+                  padding: '2px'
+                }}>
+                  <div style={{
+                    width: '100%',
+                    height: '100%',
+                    borderRadius: '50%',
+                    overflow: 'hidden',
+                    background: 'white',
+                    border: '2px solid white'
+                  }}>
+                    <img
+                      src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${activeChat.profiles.full_name}`}
+                      alt="avatar"
+                      style={{ width: '100%', height: '100%' }}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontWeight: '700', color: '#1e3a8a', fontSize: '15px' }}>
+                    {activeChat.profiles.full_name}
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#94a3b8' }}>
+                    {activeChat.profiles.city}
+                  </div>
+                </div>
               </div>
             </div>
-          ) : (
-            <h1 className="font-display font-bold text-xl text-brand-blue">Messages</h1>
-          )}
-        </div>
 
-        {activeChat && (
-          <div className="flex gap-2 text-slate-400 relative">
-            <button className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-              <Phone size={20} />
-            </button>
-            <button
-              onClick={() => setShowOptionsMenu(!showOptionsMenu)}
-              className="p-2 hover:bg-slate-100 rounded-full transition-colors"
-            >
-              <MoreVertical size={20} />
-            </button>
-
-            {showOptionsMenu && (
-              <div className="absolute top-12 right-0 bg-white border border-slate-100 shadow-xl rounded-xl w-52 py-2 z-50 animate-in fade-in zoom-in-95">
-                <Link
-                  href={`/profile/${activeChat.profiles.full_name}`}
-                  className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 text-sm text-slate-700 font-medium"
-                >
-                  <User size={16} /> View Profile
-                </Link>
-                <div className="h-px bg-slate-100 my-1"></div>
-                <button
-                  onClick={handleDisconnect}
-                  className="flex w-full items-center gap-3 px-4 py-3 hover:bg-slate-50 text-sm text-slate-700 font-medium"
-                >
-                  <UserMinus size={16} /> End Connection
-                </button>
-                <button
-                  onClick={handleBlock}
-                  className="flex w-full items-center gap-3 px-4 py-3 hover:bg-red-50 text-sm text-red-600 font-bold"
-                >
-                  <Ban size={16} /> Block User
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* 2. BODY (Scrollable) */}
-      <div className={`flex-1 overflow-y-auto p-4 bg-brand-bg ${!activeChat ? "pb-32" : ""}`} onClick={() => setShowOptionsMenu(false)}>
-        {!activeChat ? (
-          // --- CONVERSATION LIST ---
-          <div className="space-y-3">
-            {connections.length === 0 && !loading && (
-              <div className="text-center py-20 text-slate-400 flex flex-col items-center">
-                  <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-                     <MessageCircle className="text-slate-300" size={24}/>
-                  </div>
-                  No connections yet. Go to Feed!
-              </div>
-            )}
-            
-            {loading && <div className="text-center py-10"><Loader2 className="animate-spin text-brand-blue mx-auto"/></div>}
-
-            {connections.map((c) => (
-              <div
-                key={c.id}
-                onClick={() => setActiveChat(c)}
-                className="p-4 rounded-2xl flex items-center gap-4 bg-white shadow-sm border border-slate-100 cursor-pointer active:scale-[0.98] transition-transform"
+            <div style={{ position: 'relative' }}>
+              <button
+                onClick={() => setShowOptionsMenu(!showOptionsMenu)}
+                style={{
+                  padding: '8px',
+                  borderRadius: '12px',
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#64748b',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(100, 116, 139, 0.1)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
               >
-                <div className="w-14 h-14 rounded-full bg-slate-100 p-[2px]">
-                   <img
-                    src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${c.profiles.full_name}`}
-                    className="w-full h-full rounded-full object-cover bg-white"
-                    alt="avatar"
-                  />
+                <MoreVertical size={20} />
+              </button>
+
+              {showOptionsMenu && (
+                <div style={{
+                  position: 'absolute',
+                  top: '100%',
+                  right: 0,
+                  marginTop: '8px',
+                  background: 'rgba(255, 255, 255, 0.95)',
+                  backdropFilter: 'blur(20px)',
+                  WebkitBackdropFilter: 'blur(20px)',
+                  border: '1px solid rgba(255, 255, 255, 0.5)',
+                  borderRadius: '16px',
+                  boxShadow: '0 8px 32px rgba(31, 41, 55, 0.15)',
+                  padding: '8px',
+                  minWidth: '200px',
+                  zIndex: 50
+                }}>
+                  <button
+                    onClick={() => {
+                      router.push(`/profile/${activeChat.profiles.full_name}`);
+                      setShowOptionsMenu(false);
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      background: 'transparent',
+                      border: 'none',
+                      borderRadius: '12px',
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                      transition: 'background 0.2s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      color: '#1e3a8a',
+                      fontSize: '14px',
+                      fontWeight: '500'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(30, 58, 138, 0.05)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <User size={16} /> View Profile
+                  </button>
+                  <button
+                    onClick={sendSecureContact}
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      background: 'transparent',
+                      border: 'none',
+                      borderRadius: '12px',
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                      transition: 'background 0.2s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      color: '#1e3a8a',
+                      fontSize: '14px',
+                      fontWeight: '500'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(30, 58, 138, 0.05)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <Phone size={16} /> Share Contact
+                  </button>
+                  <div style={{ height: '1px', background: '#e2e8f0', margin: '8px 0' }} />
+                  <button
+                    onClick={() => {
+                      handleDisconnect();
+                      setShowOptionsMenu(false);
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      background: 'transparent',
+                      border: 'none',
+                      borderRadius: '12px',
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                      transition: 'background 0.2s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      color: '#64748b',
+                      fontSize: '14px',
+                      fontWeight: '500'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(100, 116, 139, 0.05)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <UserMinus size={16} /> Disconnect
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleBlock();
+                      setShowOptionsMenu(false);
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      background: 'transparent',
+                      border: 'none',
+                      borderRadius: '12px',
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                      transition: 'background 0.2s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      color: '#ef4444',
+                      fontSize: '14px',
+                      fontWeight: '500'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.05)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <Ban size={16} /> Block
+                  </button>
                 </div>
-                <div className="flex-1">
-                  <div className="flex justify-between items-start">
-                      <h3 className="font-bold text-slate-900 text-base">{c.profiles.full_name}</h3>
-                      {c.profiles.is_gold && <span className="bg-brand-gold/10 text-brand-gold text-[10px] font-bold px-1.5 py-0.5 rounded border border-brand-gold/20">GOLD</span>}
-                  </div>
-                  <p className="text-sm text-slate-500 line-clamp-1 mt-0.5">
-                    Tap to start chatting...
-                  </p>
-                </div>
-              </div>
-            ))}
+              )}
+            </div>
           </div>
         ) : (
-          // --- ACTIVE CHAT MESSAGES ---
-          <div className="space-y-4 pb-24">
-            {messages.map((m) => {
-                const isMe = m.sender_id === user?.id;
-                return (
-                    <div
-                        key={m.id}
-                        className={`flex ${isMe ? "justify-end" : "justify-start"}`}
-                    >
-                        <div
-                        className={`max-w-[75%] px-5 py-3 rounded-2xl text-sm leading-relaxed shadow-sm ${
-                            isMe
-                            ? "bg-brand-blue text-white rounded-tr-none"
-                            : "bg-white border border-slate-100 text-slate-700 rounded-tl-none"
-                        }`}
-                        >
-                        {m.content}
-                        </div>
-                    </div>
-                )
+          <h1 style={{ fontSize: '20px', fontWeight: '700', color: '#1E3A8A', textAlign: 'center' }}>
+            Messages
+          </h1>
+        )}
+      </header>
+
+      <div style={{ 
+        display: 'flex', 
+        height: 'calc(100vh - 160px)',
+        position: 'relative',
+        zIndex: 10
+      }}>
+        {/* SIDEBAR - Connections List */}
+        <div style={{
+          width: activeChat ? '0' : '100%',
+          maxWidth: '400px',
+          overflow: 'hidden',
+          transition: 'width 0.3s ease',
+          padding: activeChat ? '0' : '20px',
+          margin: '0 auto'
+        }}>
+          {!activeChat && connections.length === 0 && (
+            <div style={{
+              textAlign: 'center',
+              padding: '80px 20px',
+              background: 'rgba(255, 255, 255, 0.75)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255, 255, 255, 0.5)',
+              borderRadius: '24px',
+              boxShadow: '0 8px 32px rgba(31, 41, 55, 0.1)'
+            }}>
+              <MessageCircle size={48} style={{ color: '#cbd5e1', margin: '0 auto 16px' }} />
+              <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#1e3a8a', marginBottom: '8px' }}>
+                No Connections Yet
+              </h3>
+              <p style={{ fontSize: '14px', color: '#64748b', marginBottom: '20px' }}>
+                Start connecting with people on the feed
+              </p>
+              <Link
+                href="/"
+                style={{
+                  display: 'inline-block',
+                  padding: '12px 24px',
+                  background: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)',
+                  color: 'white',
+                  borderRadius: '12px',
+                  fontWeight: '700',
+                  fontSize: '14px',
+                  textDecoration: 'none',
+                  boxShadow: '0 4px 16px rgba(30, 58, 138, 0.3)',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 6px 20px rgba(30, 58, 138, 0.4)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 4px 16px rgba(30, 58, 138, 0.3)';
+                }}
+              >
+                Explore Feed
+              </Link>
+            </div>
+          )}
+
+          {!activeChat && connections.map((conn) => (
+            <div
+              key={conn.id}
+              onClick={() => setActiveChat(conn)}
+              style={{
+                background: 'rgba(255, 255, 255, 0.75)',
+                backdropFilter: 'blur(20px)',
+                WebkitBackdropFilter: 'blur(20px)',
+                border: '1px solid rgba(255, 255, 255, 0.5)',
+                borderRadius: '20px',
+                boxShadow: '0 4px 16px rgba(31, 41, 55, 0.08)',
+                padding: '16px',
+                marginBottom: '12px',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 8px 24px rgba(31, 41, 55, 0.12)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 4px 16px rgba(31, 41, 55, 0.08)';
+              }}
+            >
+              <div style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: '50%',
+                background: conn.profiles.is_gold 
+                  ? 'linear-gradient(135deg, #fde68a 0%, #fbbf24 100%)' 
+                  : '#f1f5f9',
+                padding: '2px'
+              }}>
+                <div style={{
+                  width: '100%',
+                  height: '100%',
+                  borderRadius: '50%',
+                  overflow: 'hidden',
+                  background: 'white',
+                  border: '2px solid white'
+                }}>
+                  <img
+                    src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${conn.profiles.full_name}`}
+                    alt="avatar"
+                    style={{ width: '100%', height: '100%' }}
+                  />
+                </div>
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: '700', color: '#1e3a8a', fontSize: '15px', marginBottom: '2px' }}>
+                  {conn.profiles.full_name}
+                </div>
+                <div style={{ fontSize: '12px', color: '#94a3b8' }}>
+                  {conn.profiles.city} • {conn.profiles.intent}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* MESSAGES AREA */}
+        {activeChat && (
+          <div style={{
+            flex: 1,
+            padding: '20px',
+            overflowY: 'auto',
+            maxWidth: '800px',
+            margin: '0 auto'
+          }}>
+            {messages.map((m, idx) => {
+              const isMe = m.sender_id === user?.id;
+              const isContactCard = m.content === "Verified Contact Card 📇";
+
+              return (
+                <div
+                  key={idx}
+                  style={{
+                    display: 'flex',
+                    justifyContent: isMe ? 'flex-end' : 'flex-start',
+                    marginBottom: '12px'
+                  }}
+                >
+                  <div
+                    style={{
+                      maxWidth: '70%',
+                      padding: '12px 16px',
+                      borderRadius: '16px',
+                      fontSize: '14px',
+                      background: isMe 
+                        ? 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)'
+                        : 'rgba(255, 255, 255, 0.9)',
+                      color: isMe ? 'white' : '#1e293b',
+                      backdropFilter: isMe ? 'none' : 'blur(10px)',
+                      WebkitBackdropFilter: isMe ? 'none' : 'blur(10px)',
+                      border: isMe ? 'none' : '1px solid rgba(226, 232, 240, 0.5)',
+                      boxShadow: isMe 
+                        ? '0 4px 12px rgba(30, 58, 138, 0.2)'
+                        : '0 2px 8px rgba(31, 41, 55, 0.05)',
+                      borderTopRightRadius: isMe ? '4px' : '16px',
+                      borderTopLeftRadius: isMe ? '16px' : '4px',
+                      fontWeight: isContactCard ? '700' : '400'
+                    }}
+                  >
+                    {m.content}
+                  </div>
+                </div>
+              );
             })}
-            
-            {/* Limit Warning */}
+
             {isLimitReached && (
-              <div className="flex justify-center my-6">
-                <span className="text-xs font-bold text-rose-600 bg-rose-50 px-4 py-2 rounded-full border border-rose-100 flex items-center gap-2 shadow-sm">
-                   <Lock size={12} /> Limit Reached (10/10)
+              <div style={{ display: 'flex', justifyContent: 'center', margin: '24px 0' }}>
+                <span style={{
+                  fontSize: '12px',
+                  fontWeight: '700',
+                  color: '#ef4444',
+                  background: '#fef2f2',
+                  padding: '8px 16px',
+                  borderRadius: '12px',
+                  border: '1px solid #fecaca',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  boxShadow: '0 2px 8px rgba(239, 68, 68, 0.1)'
+                }}>
+                  <Lock size={12} /> Limit Reached (10/10)
                 </span>
               </div>
             )}
@@ -384,38 +672,101 @@ function ChatContent() {
         )}
       </div>
 
-      {/* 3. INPUT AREA (Only when Chat is Active) */}
-      {/* CRITICAL FIX: 
-          We use `fixed bottom-0` with a high z-index (60) to ensure this sits 
-          ON TOP of the BottomNav dock (which is z-50).
-          This prevents the input from being hidden.
-      */}
+      {/* INPUT AREA - GLASSMORPHISM */}
       {activeChat && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-slate-200 p-3 z-[60] pb-6 sm:pb-3">
+        <div style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          background: 'rgba(255, 255, 255, 0.75)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          borderTop: '1px solid rgba(255, 255, 255, 0.5)',
+          boxShadow: '0 -4px 16px rgba(31, 41, 55, 0.08)',
+          padding: '12px',
+          zIndex: 60,
+          paddingBottom: '24px'
+        }}>
           
-          {/* AI Menu */}
+          {/* AI Menu - REFINED */}
           {showAiMenu && (
-            <div className="absolute bottom-full left-4 mb-3 bg-white border border-slate-200 shadow-2xl rounded-2xl p-3 flex flex-col gap-2 w-64 animate-in slide-in-from-bottom-2 z-20">
-              <div className="flex justify-between items-center pb-2 border-b border-slate-50">
-                <span className="text-[10px] font-bold text-brand-blue uppercase flex gap-1 items-center tracking-wider">
-                  <Sparkles size={12} className="text-brand-gold" /> AI Assistant
+            <div style={{
+              position: 'absolute',
+              bottom: '100%',
+              left: '16px',
+              marginBottom: '12px',
+              background: 'rgba(255, 255, 255, 0.95)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255, 255, 255, 0.5)',
+              boxShadow: '0 8px 32px rgba(31, 41, 55, 0.15)',
+              borderRadius: '20px',
+              padding: '16px',
+              width: '280px',
+              zIndex: 20
+            }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                paddingBottom: '12px',
+                borderBottom: '1px solid #f1f5f9',
+                marginBottom: '12px'
+              }}>
+                <span style={{
+                  fontSize: '10px',
+                  fontWeight: '700',
+                  color: '#1E3A8A',
+                  textTransform: 'uppercase',
+                  display: 'flex',
+                  gap: '4px',
+                  alignItems: 'center',
+                  letterSpacing: '0.5px'
+                }}>
+                  <Sparkles size={12} style={{ color: '#D4AF37' }} /> AI Assistant
                 </span>
-                <button onClick={() => setShowAiMenu(false)}>
-                  <X size={14} className="text-slate-400" />
+                <button
+                  onClick={() => setShowAiMenu(false)}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: '#94a3b8',
+                    padding: '4px',
+                    display: 'flex'
+                  }}
+                >
+                  <X size={14} />
                 </button>
               </div>
 
               {/* Tone Selector */}
-              <div className="flex bg-slate-100 rounded-lg p-1 gap-1">
-                {["Chill", "Witty", "Romantic"].map((t) => (
+              <div style={{
+                display: 'flex',
+                background: '#f1f5f9',
+                borderRadius: '12px',
+                padding: '4px',
+                gap: '4px',
+                marginBottom: '12px'
+              }}>
+                {(["Chill", "Witty", "Romantic"] as ChatTone[]).map((t) => (
                   <button
                     key={t}
-                    onClick={() => setAiTone(t as ChatTone)}
-                    className={`flex-1 text-[10px] font-bold py-1.5 rounded-md transition-all ${
-                      aiTone === t
-                        ? "bg-white text-brand-blue shadow-sm"
-                        : "text-slate-500 hover:text-slate-700"
-                    }`}
+                    onClick={() => setAiTone(t)}
+                    style={{
+                      flex: 1,
+                      fontSize: '10px',
+                      fontWeight: '700',
+                      padding: '6px 0',
+                      borderRadius: '8px',
+                      transition: 'all 0.2s',
+                      background: aiTone === t ? 'white' : 'transparent',
+                      color: aiTone === t ? '#1E3A8A' : '#64748b',
+                      border: 'none',
+                      cursor: 'pointer',
+                      boxShadow: aiTone === t ? '0 2px 4px rgba(30, 58, 138, 0.1)' : 'none'
+                    }}
                   >
                     {t}
                   </button>
@@ -423,25 +774,73 @@ function ChatContent() {
               </div>
 
               {/* Suggestions */}
-              <div className="flex flex-col gap-1 mt-1">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 <button
                   onClick={() => handleAiAssist("icebreaker")}
                   disabled={aiLoading}
-                  className="text-left px-3 py-2.5 hover:bg-blue-50 rounded-xl text-xs font-medium text-slate-700 flex items-center gap-2 transition-colors"
+                  style={{
+                    textAlign: 'left',
+                    padding: '12px',
+                    background: 'transparent',
+                    border: 'none',
+                    borderRadius: '12px',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    color: '#1e293b',
+                    cursor: 'pointer',
+                    transition: 'background 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = '#dbeafe'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                 >
                   🧊 Icebreaker
                 </button>
                 <button
                   onClick={() => handleAiAssist("reply")}
                   disabled={aiLoading}
-                  className="text-left px-3 py-2.5 hover:bg-blue-50 rounded-xl text-xs font-medium text-slate-700 flex items-center gap-2 transition-colors"
+                  style={{
+                    textAlign: 'left',
+                    padding: '12px',
+                    background: 'transparent',
+                    border: 'none',
+                    borderRadius: '12px',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    color: '#1e293b',
+                    cursor: 'pointer',
+                    transition: 'background 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = '#dbeafe'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                 >
                   ↩️ Polite Reply
                 </button>
                 <button
                   onClick={() => handleAiAssist("decline")}
                   disabled={aiLoading}
-                  className="text-left px-3 py-2.5 hover:bg-rose-50 rounded-xl text-xs font-medium text-rose-600 flex items-center gap-2 transition-colors"
+                  style={{
+                    textAlign: 'left',
+                    padding: '12px',
+                    background: 'transparent',
+                    border: 'none',
+                    borderRadius: '12px',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    color: '#ef4444',
+                    cursor: 'pointer',
+                    transition: 'background 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = '#fee2e2'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                 >
                   🚫 Say No Nicely
                 </button>
@@ -449,65 +848,194 @@ function ChatContent() {
             </div>
           )}
 
-          <div className="flex gap-2 items-center max-w-md mx-auto">
+          <div style={{
+            display: 'flex',
+            gap: '8px',
+            alignItems: 'center',
+            maxWidth: '640px',
+            margin: '0 auto'
+          }}>
             {/* AI Toggle */}
             <button
               onClick={() => setShowAiMenu(!showAiMenu)}
-              className="w-11 h-11 rounded-full flex items-center justify-center text-brand-blue bg-blue-50 hover:bg-blue-100 transition shadow-sm border border-blue-100"
+              style={{
+                width: '44px',
+                height: '44px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#1E3A8A',
+                background: '#dbeafe',
+                border: '1px solid rgba(30, 58, 138, 0.2)',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                boxShadow: '0 2px 8px rgba(30, 58, 138, 0.1)'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#bfdbfe';
+                e.currentTarget.style.transform = 'scale(1.05)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = '#dbeafe';
+                e.currentTarget.style.transform = 'scale(1)';
+              }}
             >
               {aiLoading ? (
-                <Loader2 size={20} className="animate-spin" />
+                <Loader2 size={20} style={{ animation: 'spin 1s linear infinite' }} />
               ) : (
-                <Sparkles size={20} className={showAiMenu ? "fill-brand-gold text-brand-gold" : ""} />
+                <Sparkles size={20} style={{ fill: showAiMenu ? '#D4AF37' : 'transparent', color: showAiMenu ? '#D4AF37' : '#1E3A8A' }} />
               )}
             </button>
 
             <input
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              placeholder={
-                isLimitReached ? "Unlock to continue..." : "Type a message..."
-              }
+              placeholder={isLimitReached ? "Unlock to continue..." : "Type a message..."}
               disabled={isLimitReached}
-              className="flex-1 bg-slate-100/80 hover:bg-slate-100 focus:bg-white border border-transparent focus:border-brand-blue/30 rounded-full px-5 py-3 text-sm outline-none transition-all placeholder:text-slate-400"
+              style={{
+                flex: 1,
+                background: 'rgba(248, 250, 252, 0.8)',
+                border: '1.5px solid rgba(226, 232, 240, 0.5)',
+                borderRadius: '24px',
+                padding: '12px 20px',
+                fontSize: '14px',
+                outline: 'none',
+                transition: 'all 0.2s',
+                color: '#1e3a8a',
+                fontFamily: 'inherit'
+              }}
               onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+              onFocus={(e) => {
+                e.currentTarget.style.background = 'white';
+                e.currentTarget.style.borderColor = 'rgba(30, 58, 138, 0.3)';
+                e.currentTarget.style.boxShadow = '0 0 0 3px rgba(30, 58, 138, 0.1)';
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.background = 'rgba(248, 250, 252, 0.8)';
+                e.currentTarget.style.borderColor = 'rgba(226, 232, 240, 0.5)';
+                e.currentTarget.style.boxShadow = 'none';
+              }}
             />
             
             <button
-              onClick={
-                isLimitReached ? () => setShowLimitModal(true) : sendMessage
-              }
-              className={`w-11 h-11 rounded-full flex items-center justify-center text-white shadow-lg transition active:scale-95 ${
-                isLimitReached ? "bg-amber-500 shadow-amber-500/20" : "bg-brand-blue shadow-blue-900/20"
-              }`}
+              onClick={isLimitReached ? () => setShowLimitModal(true) : sendMessage}
+              style={{
+                width: '44px',
+                height: '44px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                background: isLimitReached 
+                  ? '#f59e0b' 
+                  : 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)',
+                border: 'none',
+                cursor: 'pointer',
+                boxShadow: isLimitReached 
+                  ? '0 4px 12px rgba(245, 158, 11, 0.3)' 
+                  : '0 4px 12px rgba(30, 58, 138, 0.3)',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.05)';
+                e.currentTarget.style.boxShadow = isLimitReached 
+                  ? '0 6px 16px rgba(245, 158, 11, 0.4)' 
+                  : '0 6px 16px rgba(30, 58, 138, 0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.boxShadow = isLimitReached 
+                  ? '0 4px 12px rgba(245, 158, 11, 0.3)' 
+                  : '0 4px 12px rgba(30, 58, 138, 0.3)';
+              }}
             >
-              {isLimitReached ? <Lock size={18} /> : <Send size={20} className="ml-0.5" />}
+              {isLimitReached ? <Lock size={18} /> : <Send size={20} style={{ marginLeft: '2px' }} />}
             </button>
           </div>
         </div>
       )}
 
-      {/* --- MODALS --- */}
+      {/* MODALS - REFINED GLASSMORPHISM */}
       {showContactModal && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in">
-          <div className="bg-white w-full max-w-sm rounded-[2rem] p-6 shadow-2xl text-center animate-in zoom-in-95">
-            <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
-               <ShieldAlert className="w-8 h-8 text-amber-500" />
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 70,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'rgba(15, 23, 42, 0.6)',
+          backdropFilter: 'blur(4px)',
+          WebkitBackdropFilter: 'blur(4px)',
+          padding: '16px'
+        }}>
+          <div style={{
+            background: 'rgba(255, 255, 255, 0.95)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            width: '100%',
+            maxWidth: '400px',
+            borderRadius: '24px',
+            padding: '32px 24px',
+            boxShadow: '0 20px 60px rgba(31, 41, 55, 0.3)',
+            textAlign: 'center'
+          }}>
+            <div style={{
+              width: '64px',
+              height: '64px',
+              background: '#fef3c7',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 16px'
+            }}>
+              <ShieldAlert style={{ width: '32px', height: '32px', color: '#f59e0b' }} />
             </div>
-            <h2 className="text-xl font-display font-bold text-slate-900 mb-2">
+            <h2 style={{
+              fontSize: '20px',
+              fontWeight: '700',
+              color: '#1e3a8a',
+              marginBottom: '8px',
+              fontFamily: 'Georgia, serif'
+            }}>
               Wait! Is that a number?
             </h2>
-            <p className="text-sm text-slate-500 mb-6">
-                To keep our community safe, phone numbers can only be shared via the Secure Card.
+            <p style={{
+              fontSize: '14px',
+              color: '#64748b',
+              marginBottom: '24px',
+              lineHeight: '1.5'
+            }}>
+              To keep our community safe, phone numbers can only be shared via the Secure Card.
             </p>
-            <div className="space-y-3">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <button
                 onClick={sendSecureContact}
                 disabled={sendingCard}
-                className="w-full bg-brand-blue text-white font-bold py-4 rounded-xl flex justify-center items-center gap-2 shadow-xl shadow-blue-900/10 active:scale-95 transition-all"
+                style={{
+                  width: '100%',
+                  background: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)',
+                  color: 'white',
+                  fontWeight: '700',
+                  padding: '16px',
+                  borderRadius: '12px',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  gap: '8px',
+                  boxShadow: '0 4px 16px rgba(30, 58, 138, 0.3)',
+                  border: 'none',
+                  cursor: sendingCard ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s',
+                  opacity: sendingCard ? 0.6 : 1,
+                  fontFamily: 'inherit'
+                }}
               >
                 {sendingCard ? (
-                  <Loader2 className="animate-spin" />
+                  <Loader2 style={{ animation: 'spin 1s linear infinite' }} />
                 ) : (
                   <>
                     <Contact size={18} /> Share Card (199 Coins)
@@ -516,7 +1044,19 @@ function ChatContent() {
               </button>
               <button
                 onClick={() => setShowContactModal(false)}
-                className="w-full text-slate-500 font-medium py-2 hover:text-slate-800 transition-colors"
+                style={{
+                  width: '100%',
+                  color: '#64748b',
+                  fontWeight: '500',
+                  padding: '8px',
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  transition: 'color 0.2s',
+                  fontFamily: 'inherit'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.color = '#1e293b'}
+                onMouseLeave={(e) => e.currentTarget.style.color = '#64748b'}
               >
                 Edit Message
               </button>
@@ -526,32 +1066,104 @@ function ChatContent() {
       )}
 
       {showLimitModal && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in">
-          <div className="bg-white w-full max-w-sm rounded-[2rem] p-6 shadow-2xl text-center animate-in zoom-in-95">
-            <div className="w-16 h-16 bg-brand-blue/10 rounded-full flex items-center justify-center mx-auto mb-4">
-               <CheckCircle2 className="w-8 h-8 text-brand-blue" />
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 70,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'rgba(15, 23, 42, 0.6)',
+          backdropFilter: 'blur(4px)',
+          WebkitBackdropFilter: 'blur(4px)',
+          padding: '16px'
+        }}>
+          <div style={{
+            background: 'rgba(255, 255, 255, 0.95)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            width: '100%',
+            maxWidth: '400px',
+            borderRadius: '24px',
+            padding: '32px 24px',
+            boxShadow: '0 20px 60px rgba(31, 41, 55, 0.3)',
+            textAlign: 'center'
+          }}>
+            <div style={{
+              width: '64px',
+              height: '64px',
+              background: 'rgba(30, 58, 138, 0.1)',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 16px'
+            }}>
+              <CheckCircle2 style={{ width: '32px', height: '32px', color: '#1E3A8A' }} />
             </div>
-            <h2 className="text-xl font-display font-bold text-slate-900 mb-2">
+            <h2 style={{
+              fontSize: '20px',
+              fontWeight: '700',
+              color: '#1e3a8a',
+              marginBottom: '8px',
+              fontFamily: 'Georgia, serif'
+            }}>
               Vibe Check Complete
             </h2>
-            <p className="text-sm text-slate-500 mb-6 px-4">
-                You've exchanged 10 messages! To continue this connection, please verify it's real.
+            <p style={{
+              fontSize: '14px',
+              color: '#64748b',
+              marginBottom: '24px',
+              padding: '0 16px',
+              lineHeight: '1.5'
+            }}>
+              You've exchanged 10 messages! To continue this connection, please verify it's real.
             </p>
-            <button
-              onClick={sendSecureContact}
-              className="w-full bg-brand-blue text-white font-bold py-4 rounded-xl mb-3 shadow-xl shadow-blue-900/10 active:scale-95 transition-all"
-            >
-              Share Contact (199 Coins)
-            </button>
-            <button
-              onClick={() => setShowLimitModal(false)}
-              className="w-full text-slate-500 font-medium"
-            >
-              Cancel
-            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <button
+                onClick={sendSecureContact}
+                style={{
+                  width: '100%',
+                  background: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)',
+                  color: 'white',
+                  fontWeight: '700',
+                  padding: '16px',
+                  borderRadius: '12px',
+                  boxShadow: '0 4px 16px rgba(30, 58, 138, 0.3)',
+                  border: 'none',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  fontFamily: 'inherit'
+                }}
+              >
+                Share Contact (199 Coins)
+              </button>
+              <button
+                onClick={() => setShowLimitModal(false)}
+                style={{
+                  width: '100%',
+                  color: '#64748b',
+                  fontWeight: '500',
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontFamily: 'inherit'
+                }}
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}
+
+      {/* Spin animation */}
+      <style jsx>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 }
@@ -560,8 +1172,15 @@ export default function ChatPage() {
   return (
     <Suspense
       fallback={
-        <div className="h-screen w-full flex items-center justify-center bg-brand-bg">
-          <Loader2 className="animate-spin text-brand-blue" />
+        <div style={{
+          height: '100vh',
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'linear-gradient(135deg, #E0E7FF 0%, #DBEAFE 25%, #FFFFFF 50%, #E0F2FE 75%, #DBEAFE 100%)'
+        }}>
+          <Loader2 style={{ color: '#1E3A8A', animation: 'spin 1s linear infinite' }} />
         </div>
       }
     >

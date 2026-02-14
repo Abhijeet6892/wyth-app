@@ -1,11 +1,31 @@
 'use client'
+
 import { useEffect, useState, use } from 'react'
 import { supabase } from '@/utils/supabase/client'
 import FeedCard from '@/components/FeedCard'
 import { SlotPaywall, GoldUpsell } from '@/components/InteractionModals'
-import { ArrowLeft, Zap, Hash, ShieldCheck, Lock, MapPin, Briefcase, Award, CheckCircle2 } from 'lucide-react'
+import { 
+  ArrowLeft, 
+  Zap, 
+  Hash, 
+  ShieldCheck, 
+  Lock, 
+  MapPin, 
+  Briefcase, 
+  Award, 
+  CheckCircle2,
+  Heart,
+  Loader2,
+  Home,
+  Church,
+  Languages,
+  Utensils,
+  Wine,
+  Cigarette
+} from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { motion } from 'framer-motion'
 
 export default function PublicProfilePage({ params }: { params: Promise<{ username: string }> }) {
   const { username } = use(params)
@@ -26,14 +46,11 @@ export default function PublicProfilePage({ params }: { params: Promise<{ userna
     const fetchProfile = async () => {
       const name = decodeURIComponent(username)
       
-      // 0. Get Current User
       const { data: { user } } = await supabase.auth.getUser()
       setCurrentUser(user)
 
-      // 1. Find Target Profile (by Name or Brand ID)
       let query = supabase.from('profiles').select('*')
       
-      // Heuristic: If it looks like a Brand ID (starts with WYTH), try that first
       if (name.startsWith('WYTH')) {
          const { data: byID } = await supabase.from('profiles').select('*').eq('brand_id', name).maybeSingle()
          if (byID) {
@@ -42,7 +59,6 @@ export default function PublicProfilePage({ params }: { params: Promise<{ userna
          }
       }
 
-      // Otherwise search by name
       const { data: byName } = await query.ilike('full_name', `%${name}%`).limit(1).maybeSingle()
       
       if (byName) {
@@ -55,7 +71,6 @@ export default function PublicProfilePage({ params }: { params: Promise<{ userna
     const setProfileData = async (userData: any, user: any) => {
         setProfile(userData)
         
-        // 2. Check Connection Status
         if (user) {
             const { data: connection } = await supabase
                 .from('connections')
@@ -67,7 +82,6 @@ export default function PublicProfilePage({ params }: { params: Promise<{ userna
             if (connection || user.id === userData.id) setIsConnected(true)
         }
 
-        // 3. Fetch User's Posts
         const { data: postData } = await supabase
           .from('posts')
           .select('*, profiles(*)')
@@ -81,7 +95,6 @@ export default function PublicProfilePage({ params }: { params: Promise<{ userna
     if (username) fetchProfile()
   }, [username])
 
-  // --- HANDLERS ---
   const handleConnect = () => {
       if (!currentUser) return router.push('/login')
       setPaywallMode('connect')
@@ -99,145 +112,654 @@ export default function PublicProfilePage({ params }: { params: Promise<{ userna
       }
   }
 
-  if (loading) return <div className="h-screen w-full bg-slate-50 flex items-center justify-center text-slate-400">Loading Profile...</div>
+  if (loading) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'linear-gradient(135deg, #E0E7FF 0%, #DBEAFE 25%, #FFFFFF 50%, #E0F2FE 75%, #DBEAFE 100%)'
+      }}>
+        <Loader2 size={32} className="animate-spin" style={{ color: '#1e3a8a' }} />
+      </div>
+    );
+  }
   
-  if (!profile && !loading) return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6">
-        <h2 className="text-xl font-bold text-slate-900 mb-2">User not found</h2>
-        <Link href="/" className="px-6 py-3 bg-slate-900 text-white rounded-full font-bold text-sm">Go Home</Link>
-    </div>
-  )
+  if (!profile && !loading) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '24px',
+        background: 'linear-gradient(135deg, #E0E7FF 0%, #DBEAFE 25%, #FFFFFF 50%, #E0F2FE 75%, #DBEAFE 100%)'
+      }}>
+        <h2 style={{
+          fontSize: '20px',
+          fontWeight: '700',
+          color: '#1e3a8a',
+          marginBottom: '12px'
+        }}>
+          User not found
+        </h2>
+        <Link href="/" style={{
+          padding: '12px 24px',
+          background: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)',
+          color: 'white',
+          borderRadius: '16px',
+          fontWeight: '700',
+          fontSize: '14px',
+          textDecoration: 'none',
+          boxShadow: '0 4px 12px rgba(30, 58, 138, 0.3)'
+        }}>
+          Go Home
+        </Link>
+      </div>
+    );
+  }
 
-  // Parse Soft Signals
   const signals = profile.profile_signals || {}
   const lifestyle = profile.lifestyle || {}
 
   return (
-    <div className="min-h-screen bg-slate-50 flex justify-center">
-      <div className="w-full max-w-md bg-white min-h-screen shadow-xl relative pb-24">
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #E0E7FF 0%, #DBEAFE 25%, #FFFFFF 50%, #E0F2FE 75%, #DBEAFE 100%)',
+      display: 'flex',
+      justifyContent: 'center',
+      position: 'relative'
+    }}>
+      {/* Background Orbs */}
+      <div style={{ 
+        position: 'fixed', 
+        top: '-10%', 
+        left: '-10%', 
+        width: '50%', 
+        height: '50%', 
+        background: 'radial-gradient(circle, rgba(30, 58, 138, 0.15) 0%, transparent 70%)', 
+        filter: 'blur(60px)', 
+        pointerEvents: 'none',
+        zIndex: 1
+      }} />
+      <div style={{ 
+        position: 'fixed', 
+        bottom: '-10%', 
+        right: '-10%', 
+        width: '50%', 
+        height: '50%', 
+        background: 'radial-gradient(circle, rgba(59, 130, 246, 0.12) 0%, transparent 70%)', 
+        filter: 'blur(60px)', 
+        pointerEvents: 'none',
+        zIndex: 1
+      }} />
+
+      <div style={{
+        width: '100%',
+        maxWidth: '448px',
+        background: 'rgba(255, 255, 255, 0.85)',
+        backdropFilter: 'blur(20px)',
+        minHeight: '100vh',
+        boxShadow: '0 0 60px rgba(31, 41, 55, 0.08)',
+        position: 'relative',
+        paddingBottom: isConnected || currentUser?.id === profile.id ? '100px' : '140px',
+        zIndex: 10
+      }}>
         
         {/* Header */}
-        <div className="sticky top-0 bg-white/90 backdrop-blur-md z-30 px-4 py-3 flex items-center justify-between border-b border-slate-100">
-            <Link href="/" className="p-2 -ml-2 rounded-full hover:bg-slate-50 transition"><ArrowLeft size={20} className="text-slate-600" /></Link>
-            <span className="font-bold text-slate-900">{profile.full_name}</span>
-            <div className="w-8"></div>
+        <div style={{
+          position: 'sticky',
+          top: 0,
+          background: 'rgba(255, 255, 255, 0.9)',
+          backdropFilter: 'blur(20px)',
+          zIndex: 30,
+          padding: '12px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          borderBottom: '1px solid rgba(226, 232, 240, 0.6)'
+        }}>
+          <Link href="/" style={{
+            padding: '8px',
+            marginLeft: '-8px',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'background 0.2s',
+            textDecoration: 'none'
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(241, 245, 249, 0.8)'}
+          onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+          >
+            <ArrowLeft size={20} style={{ color: '#64748b' }} />
+          </Link>
+          <span style={{
+            fontWeight: '700',
+            color: '#1e3a8a',
+            fontSize: '16px'
+          }}>
+            {profile.full_name}
+          </span>
+          <div style={{ width: '32px' }}></div>
         </div>
 
-        <div className="p-4">
-            {/* Hero Image */}
-            <div className="w-full aspect-square bg-slate-100 rounded-3xl overflow-hidden mb-6 relative shadow-inner">
-                {profile.avatar_url ? (
-                    <img src={profile.avatar_url} alt={profile.full_name} className="w-full h-full object-cover"/>
-                ) : (
-                    <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.full_name}`} alt={profile.full_name} className="w-full h-full object-cover"/>
-                )}
-                
-                <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur px-3 py-1.5 rounded-full text-xs font-bold text-slate-800 shadow-sm border border-white/50">
-                    {profile.intent === 'ready_marriage' ? 'Ready for Marriage' : profile.intent === 'dating_marriage' ? 'Dating for Marriage' : 'Exploring'}
-                </div>
+        <div style={{ padding: '16px' }}>
+          {/* Hero Image */}
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            style={{
+              width: '100%',
+              aspectRatio: '1',
+              background: 'rgba(241, 245, 249, 0.8)',
+              borderRadius: '24px',
+              overflow: 'hidden',
+              marginBottom: '24px',
+              position: 'relative',
+              boxShadow: '0 8px 32px rgba(31, 41, 55, 0.1)',
+              border: '1px solid rgba(255, 255, 255, 0.5)'
+            }}
+          >
+            {profile.avatar_url ? (
+              <img src={profile.avatar_url} alt={profile.full_name} style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover'
+              }} />
+            ) : (
+              <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.full_name}`} alt={profile.full_name} style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover'
+              }} />
+            )}
+            
+            <div style={{
+              position: 'absolute',
+              bottom: '16px',
+              left: '16px',
+              background: 'rgba(255, 255, 255, 0.9)',
+              backdropFilter: 'blur(10px)',
+              padding: '8px 16px',
+              borderRadius: '16px',
+              fontSize: '12px',
+              fontWeight: '700',
+              color: '#1e3a8a',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
+              border: '1px solid rgba(255, 255, 255, 0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}>
+              <Heart size={12} style={{ fill: '#1e3a8a' }} />
+              {profile.intent === 'ready_marriage' ? 'Ready for Marriage' : profile.intent === 'dating_marriage' ? 'Dating for Marriage' : 'Exploring'}
             </div>
+          </motion.div>
 
-            {/* Name & ID */}
-            <h1 className="text-3xl font-bold text-slate-900 mb-1 flex items-center gap-2">
-                {profile.full_name}
-                {profile.is_gold ? <Award size={20} className="text-amber-500 fill-amber-500"/> : <CheckCircle2 size={20} className="text-blue-500 fill-blue-50"/>}
+          {/* Name & ID */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+          >
+            <h1 style={{
+              fontSize: '32px',
+              fontWeight: '700',
+              color: '#1e3a8a',
+              marginBottom: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              {profile.full_name}
+              {profile.is_gold ? (
+                <Award size={20} style={{ color: '#f59e0b', fill: '#f59e0b' }} />
+              ) : (
+                <CheckCircle2 size={20} style={{ color: '#2563eb', fill: 'rgba(37, 99, 235, 0.1)' }} />
+              )}
             </h1>
             
-            <div className="flex items-center gap-3 mb-6">
-                {profile.brand_id && <p className="text-xs text-slate-400 font-mono flex items-center gap-1"><Hash size={12} /> {profile.brand_id}</p>}
-                <div className="text-xs bg-indigo-50 text-indigo-700 font-bold px-2 py-1 rounded flex items-center gap-1">
-                    <ShieldCheck size={12} /> {profile.vouches_count || 0} Vouches
-                </div>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              marginBottom: '24px',
+              flexWrap: 'wrap'
+            }}>
+              {profile.brand_id && (
+                <p style={{
+                  fontSize: '11px',
+                  color: '#94a3b8',
+                  fontFamily: 'monospace',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  background: 'rgba(241, 245, 249, 0.6)',
+                  padding: '4px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(226, 232, 240, 0.5)'
+                }}>
+                  <Hash size={12} /> {profile.brand_id}
+                </p>
+              )}
+              <div style={{
+                fontSize: '11px',
+                background: 'rgba(99, 102, 241, 0.1)',
+                color: '#4f46e5',
+                fontWeight: '700',
+                padding: '6px 12px',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                border: '1px solid rgba(99, 102, 241, 0.1)'
+              }}>
+                <ShieldCheck size={12} /> {profile.vouches_count || 0} Vouches
+              </div>
             </div>
 
-            <p className="text-slate-500 mb-6 flex items-center gap-1">
-                <MapPin size={16}/> {profile.city_display || profile.city} 
-                {profile.gender && <span className="ml-1">• {profile.gender}</span>}
+            <p style={{
+              color: '#64748b',
+              marginBottom: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: '14px',
+              fontWeight: '500'
+            }}>
+              <MapPin size={16} style={{ color: '#f59e0b' }} /> 
+              {profile.city_display || profile.city}
+              {profile.gender && <span style={{ marginLeft: '4px' }}>• {profile.gender}</span>}
             </p>
+          </motion.div>
 
-            {/* BIO */}
-            {profile.bio && (
-                <div className="mb-8 p-4 bg-slate-50 rounded-2xl border border-slate-100 italic text-slate-600">
-                    "{profile.bio}"
-                </div>
+          {/* BIO */}
+          {profile.bio && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              style={{
+                marginBottom: '32px',
+                padding: '20px',
+                background: 'rgba(241, 245, 249, 0.6)',
+                borderRadius: '20px',
+                border: '1px solid rgba(226, 232, 240, 0.6)',
+                fontStyle: 'italic',
+                color: '#475569',
+                fontSize: '15px',
+                lineHeight: '1.6',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.02)'
+              }}
+            >
+              "{profile.bio}"
+            </motion.div>
+          )}
+
+          {/* LIFESTYLE CHIPS */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '8px',
+              marginBottom: '32px'
+            }}
+          >
+            {lifestyle.diet && (
+              <span style={{
+                padding: '10px 16px',
+                background: 'rgba(16, 185, 129, 0.05)',
+                border: '1px solid rgba(16, 185, 129, 0.1)',
+                borderRadius: '16px',
+                fontSize: '13px',
+                fontWeight: '600',
+                color: '#059669',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}>
+                <Utensils size={12} /> {lifestyle.diet}
+              </span>
             )}
+            {lifestyle.drink && (
+              <span style={{
+                padding: '10px 16px',
+                background: 'rgba(139, 92, 246, 0.05)',
+                border: '1px solid rgba(139, 92, 246, 0.1)',
+                borderRadius: '16px',
+                fontSize: '13px',
+                fontWeight: '600',
+                color: '#7c3aed',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}>
+                <Wine size={12} /> {lifestyle.drink} Drinker
+              </span>
+            )}
+            {lifestyle.smoke && (
+              <span style={{
+                padding: '10px 16px',
+                background: 'rgba(239, 68, 68, 0.05)',
+                border: '1px solid rgba(239, 68, 68, 0.1)',
+                borderRadius: '16px',
+                fontSize: '13px',
+                fontWeight: '600',
+                color: '#dc2626',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}>
+                <Cigarette size={12} /> {lifestyle.smoke} Smoker
+              </span>
+            )}
+          </motion.div>
 
-            {/* LIFESTYLE CHIPS */}
-            <div className="flex flex-wrap gap-2 mb-8">
-                {lifestyle.diet && <span className="px-4 py-2 bg-slate-50 border border-slate-100 rounded-full text-sm font-medium text-slate-600">{lifestyle.diet}</span>}
-                {lifestyle.drink && <span className="px-4 py-2 bg-slate-50 border border-slate-100 rounded-full text-sm font-medium text-slate-600">{lifestyle.drink} Drinker</span>}
-                {lifestyle.smoke && <span className="px-4 py-2 bg-slate-50 border border-slate-100 rounded-full text-sm font-medium text-slate-600">{lifestyle.smoke} Smoker</span>}
-            </div>
+          <div style={{
+            height: '1px',
+            background: 'rgba(226, 232, 240, 0.6)',
+            marginBottom: '32px'
+          }} />
 
-            <hr className="border-slate-100 mb-8" />
-
-            {/* DEEP DATA (Protected) */}
-            <div className="mb-8">
-                <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-                    Private Preferences
-                    {!isConnected && <Lock size={16} className="text-amber-500"/>}
-                </h3>
-                
-                {isConnected ? (
-                    // UNLOCKED VIEW
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
-                            <p className="text-xs text-blue-600 uppercase font-bold mb-1">Income Range</p>
-                            <p className="font-bold text-slate-900">₹{signals.incomeSignal?.min || '?'}-{signals.incomeSignal?.max || '?'}L</p>
-                        </div>
-                        <div className="p-4 bg-purple-50 rounded-xl border border-purple-100">
-                            <p className="text-xs text-purple-600 uppercase font-bold mb-1">Family</p>
-                            <p className="font-bold text-slate-900">{signals.familyTypeSignal || 'Not specified'}</p>
-                        </div>
-                        <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-100 col-span-2">
-                            <p className="text-xs text-emerald-600 uppercase font-bold mb-1">Culture</p>
-                            <p className="font-bold text-slate-900">{signals.religionSignal || 'Not specified'}</p>
-                        </div>
-                    </div>
-                ) : (
-                    // LOCKED VIEW
-                    <div onClick={handleConnect} className="relative overflow-hidden rounded-2xl border border-amber-100 bg-amber-50/50 p-6 text-center cursor-pointer group hover:bg-amber-100 transition">
-                        <div className="flex flex-col items-center justify-center gap-2 opacity-60">
-                            <div className="h-4 bg-slate-400 rounded w-1/2"></div>
-                            <div className="h-4 bg-slate-400 rounded w-3/4"></div>
-                        </div>
-                        <div className="absolute inset-0 flex flex-col items-center justify-center backdrop-blur-[2px]">
-                            <div className="bg-white p-3 rounded-full shadow-sm mb-2 group-hover:scale-110 transition-transform">
-                                <Lock size={20} className="text-amber-500"/>
-                            </div>
-                            <p className="text-xs font-bold text-amber-900">Connect to unlock Deep Data</p>
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            <hr className="border-slate-100 mb-8" />
-            <h3 className="font-bold text-lg mb-4">Activity</h3>
+          {/* DEEP DATA (Protected) */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            style={{ marginBottom: '32px' }}
+          >
+            <h3 style={{
+              fontWeight: '700',
+              fontSize: '18px',
+              marginBottom: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              color: '#1e3a8a'
+            }}>
+              Private Preferences
+              {!isConnected && <Lock size={16} style={{ color: '#f59e0b' }} />}
+            </h3>
             
-            {/* Feed Cards */}
+            {isConnected ? (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '12px'
+              }}>
+                <div style={{
+                  padding: '16px',
+                  background: 'rgba(59, 130, 246, 0.05)',
+                  borderRadius: '16px',
+                  border: '1px solid rgba(59, 130, 246, 0.1)'
+                }}>
+                  <p style={{
+                    fontSize: '10px',
+                    color: '#2563eb',
+                    textTransform: 'uppercase',
+                    fontWeight: '700',
+                    marginBottom: '4px',
+                    letterSpacing: '0.5px'
+                  }}>Income Range</p>
+                  <p style={{
+                    fontWeight: '700',
+                    color: '#1e3a8a',
+                    fontSize: '14px'
+                  }}>
+                    ₹{signals.incomeSignal?.min || '?'}-{signals.incomeSignal?.max || '?'}L
+                  </p>
+                </div>
+                <div style={{
+                  padding: '16px',
+                  background: 'rgba(168, 85, 247, 0.05)',
+                  borderRadius: '16px',
+                  border: '1px solid rgba(168, 85, 247, 0.1)'
+                }}>
+                  <p style={{
+                    fontSize: '10px',
+                    color: '#9333ea',
+                    textTransform: 'uppercase',
+                    fontWeight: '700',
+                    marginBottom: '4px',
+                    letterSpacing: '0.5px'
+                  }}>Family</p>
+                  <p style={{
+                    fontWeight: '700',
+                    color: '#1e3a8a',
+                    fontSize: '14px'
+                  }}>
+                    {signals.familyTypeSignal || 'Not specified'}
+                  </p>
+                </div>
+                <div style={{
+                  padding: '16px',
+                  background: 'rgba(16, 185, 129, 0.05)',
+                  borderRadius: '16px',
+                  border: '1px solid rgba(16, 185, 129, 0.1)',
+                  gridColumn: '1 / -1'
+                }}>
+                  <p style={{
+                    fontSize: '10px',
+                    color: '#059669',
+                    textTransform: 'uppercase',
+                    fontWeight: '700',
+                    marginBottom: '4px',
+                    letterSpacing: '0.5px'
+                  }}>Culture</p>
+                  <p style={{
+                    fontWeight: '700',
+                    color: '#1e3a8a',
+                    fontSize: '14px'
+                  }}>
+                    {signals.religionSignal || 'Not specified'}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div
+                onClick={handleConnect}
+                style={{
+                  position: 'relative',
+                  overflow: 'hidden',
+                  borderRadius: '20px',
+                  border: '1px solid rgba(245, 158, 11, 0.2)',
+                  background: 'rgba(254, 243, 199, 0.3)',
+                  padding: '24px',
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(254, 243, 199, 0.5)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(254, 243, 199, 0.3)'}
+              >
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  opacity: 0.6
+                }}>
+                  <div style={{
+                    height: '16px',
+                    background: '#cbd5e1',
+                    borderRadius: '8px',
+                    width: '50%'
+                  }}></div>
+                  <div style={{
+                    height: '16px',
+                    background: '#cbd5e1',
+                    borderRadius: '8px',
+                    width: '75%'
+                  }}></div>
+                </div>
+                <div style={{
+                  position: 'absolute',
+                  inset: 0,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backdropFilter: 'blur(2px)'
+                }}>
+                  <div style={{
+                    background: 'white',
+                    padding: '12px',
+                    borderRadius: '50%',
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+                    marginBottom: '8px',
+                    transition: 'transform 0.2s'
+                  }}>
+                    <Lock size={20} style={{ color: '#f59e0b' }} />
+                  </div>
+                  <p style={{
+                    fontSize: '12px',
+                    fontWeight: '700',
+                    color: '#92400e'
+                  }}>
+                    Connect to unlock Deep Data
+                  </p>
+                </div>
+              </div>
+            )}
+          </motion.div>
+
+          <div style={{
+            height: '1px',
+            background: 'rgba(226, 232, 240, 0.6)',
+            marginBottom: '32px'
+          }} />
+          
+          <h3 style={{
+            fontWeight: '700',
+            fontSize: '18px',
+            marginBottom: '16px',
+            color: '#1e3a8a'
+          }}>
+            Activity
+          </h3>
+          
+          {/* Feed Cards */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+          >
             {posts.map(post => (
-                <FeedCard 
-                    key={post.id} 
-                    post={post}
-                    isConnected={isConnected}
-                    onConnect={handleConnect}
-                    onSocialUnlock={() => setShowGoldUpsell(true)}
-                    onComment={() => setShowPaywall(true)}
-                />
+              <FeedCard 
+                key={post.id} 
+                post={post}
+                isConnected={isConnected}
+                onConnect={handleConnect}
+                onSocialUnlock={() => setShowGoldUpsell(true)}
+                onComment={() => setShowPaywall(true)}
+              />
             ))}
-            {posts.length === 0 && <p className="text-slate-400 text-center py-4">No public activity yet.</p>}
+            {posts.length === 0 && (
+              <p style={{
+                color: '#94a3b8',
+                textAlign: 'center',
+                padding: '32px 16px',
+                fontSize: '14px'
+              }}>
+                No public activity yet.
+              </p>
+            )}
+          </motion.div>
         </div>
 
         {/* Sticky Action Bar */}
         {!isConnected && currentUser?.id !== profile.id && (
-            <div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-slate-100 flex gap-3 z-20">
-                <button onClick={handleVouch} className="flex-1 bg-indigo-50 border border-indigo-100 text-indigo-600 py-3.5 rounded-xl font-bold active:scale-95 transition flex items-center justify-center gap-1">
-                    <ShieldCheck size={18} /> Vouch
-                </button>
-                <button onClick={handleConnect} className="flex-[2] bg-slate-900 text-white py-3.5 rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 hover:bg-slate-800 active:scale-95 transition">
-                    Connect <Zap size={16} className="text-yellow-400 fill-yellow-400" />
-                </button>
+          <div style={{
+            position: 'fixed',
+            bottom: '24px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: '100%',
+            maxWidth: '416px',
+            padding: '0 16px',
+            zIndex: 50
+          }}>
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.9)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255, 255, 255, 0.5)',
+              boxShadow: '0 8px 32px rgba(31, 41, 55, 0.15)',
+              borderRadius: '20px',
+              padding: '12px',
+              display: 'flex',
+              gap: '12px'
+            }}>
+              <button
+                onClick={handleVouch}
+                style={{
+                  flex: 1,
+                  background: 'rgba(99, 102, 241, 0.1)',
+                  border: '1px solid rgba(99, 102, 241, 0.2)',
+                  color: '#4f46e5',
+                  padding: '14px',
+                  borderRadius: '16px',
+                  fontWeight: '700',
+                  fontSize: '14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  fontFamily: 'inherit'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)';
+                  e.currentTarget.style.transform = 'scale(0.98)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(99, 102, 241, 0.1)';
+                  e.currentTarget.style.transform = 'scale(1)';
+                }}
+              >
+                <ShieldCheck size={18} /> Vouch
+              </button>
+              <button
+                onClick={handleConnect}
+                style={{
+                  flex: 2,
+                  background: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)',
+                  border: 'none',
+                  color: 'white',
+                  padding: '14px',
+                  borderRadius: '16px',
+                  fontWeight: '700',
+                  fontSize: '14px',
+                  boxShadow: '0 4px 16px rgba(30, 58, 138, 0.3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  fontFamily: 'inherit'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%)';
+                  e.currentTarget.style.transform = 'scale(0.98)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)';
+                  e.currentTarget.style.transform = 'scale(1)';
+                }}
+              >
+                Connect <Zap size={16} style={{ color: '#fbbf24', fill: '#fbbf24' }} />
+              </button>
             </div>
+          </div>
         )}
 
         {/* Modals */}
@@ -245,6 +767,16 @@ export default function PublicProfilePage({ params }: { params: Promise<{ userna
         <GoldUpsell isOpen={showGoldUpsell} onClose={() => setShowGoldUpsell(false)} />
 
       </div>
+
+      <style jsx>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        .animate-spin {
+          animation: spin 1s linear infinite;
+        }
+      `}</style>
     </div>
   )
 }

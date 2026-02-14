@@ -21,6 +21,7 @@ import {
 interface Profile {
   id?: string;
   full_name: string;
+  avatar_url?: string;      // ✅ ADDED - Real photo support
   is_gold?: boolean;
   brand_id?: string;
   vouches_count?: number;
@@ -43,9 +44,9 @@ interface FeedPost {
 interface FeedCardProps {
   post: FeedPost;
   isConnected?: boolean;
-  onConnect: (mode?: "connect" | "message") => void; // Accepts the mode argument
-  onSocialUnlock: () => void; // Accepts the unlock trigger
-  onComment: () => void; // Accepts the comment trigger
+  onConnect: (mode?: "connect" | "message") => void;
+  onSocialUnlock: () => void;
+  onComment: () => void;
 }
 
 export default function FeedCard({
@@ -57,13 +58,18 @@ export default function FeedCard({
 }: FeedCardProps) {
   const [showReactionDock, setShowReactionDock] = useState(false);
   const [reactionType, setReactionType] = useState<string | null>(null);
-  const [liked, setLiked] = useState(false);
 
   const profile = post.profiles || { full_name: "Unknown User" };
   const isCommitted = profile.relationship_status === "paired";
 
   // URL-friendly username
   const profileLink = `/profile/${encodeURIComponent(profile.full_name)}`;
+
+  // ✅ AVATAR LOGIC - Use real photo if exists, fallback to DiceBear
+  const avatarSrc = profile.avatar_url 
+    || (profile.brand_id 
+      ? `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.brand_id}`
+      : `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.full_name}`);
 
   // The "Intentional" Reaction Set
   const reactions = [
@@ -82,135 +88,328 @@ export default function FeedCard({
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
-      className="bg-white rounded-[2rem] shadow-[0_8px_30px_rgba(0,0,0,0.04)] border border-slate-100 overflow-hidden mb-8 relative"
+      style={{
+        background: 'rgba(255, 255, 255, 0.75)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        border: '1px solid rgba(255, 255, 255, 0.5)',
+        borderRadius: '24px',
+        boxShadow: '0 8px 32px rgba(31, 41, 55, 0.1)',
+        overflow: 'hidden',
+        marginBottom: '20px',
+        position: 'relative'
+      }}
     >
       {/* 1. HEADER: Minimalist & Clean */}
-      <div className="p-4 flex justify-between items-center bg-white/60 backdrop-blur-md sticky top-0 z-10">
-        <div className="flex gap-3 items-center">
-          {/* Avatar Ring */}
-          <Link href={profileLink} className="relative group">
-            <div
-              className={`w-11 h-11 rounded-full p-[2px] transition-transform duration-300 group-hover:scale-105 ${
-                profile.is_gold
-                  ? "bg-gradient-to-tr from-amber-200 to-yellow-500"
-                  : "bg-slate-100"
-              }`}
+      <div style={{
+        padding: '16px 20px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        background: 'rgba(255, 255, 255, 0.6)',
+        backdropFilter: 'blur(10px)',
+        borderBottom: '1px solid rgba(226, 232, 240, 0.3)'
+      }}>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          {/* Avatar Ring - NOW USES REAL PHOTOS! */}
+          <Link href={profileLink}>
+            <div style={{
+              width: '44px',
+              height: '44px',
+              borderRadius: '50%',
+              padding: '2px',
+              background: profile.is_gold
+                ? 'linear-gradient(135deg, #fde68a 0%, #fbbf24 100%)'
+                : '#f1f5f9',
+              cursor: 'pointer',
+              transition: 'transform 0.2s'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
             >
-              <div className="w-full h-full rounded-full bg-white overflow-hidden border-2 border-white">
+              <div style={{
+                width: '100%',
+                height: '100%',
+                borderRadius: '50%',
+                overflow: 'hidden',
+                background: 'white',
+                border: '2px solid white'
+              }}>
                 <img
-                  src={
-                    profile.brand_id
-                      ? `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.brand_id}`
-                      : `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.full_name}`
-                  }
-                  alt="avatar"
-                  className="w-full h-full object-cover"
+                  src={avatarSrc}
+                  alt={profile.full_name}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />
               </div>
             </div>
           </Link>
 
-          <div className="leading-tight">
-            <div className="flex items-center gap-1.5">
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
               <Link
                 href={profileLink}
-                className="font-bold text-slate-900 text-[15px] hover:text-brand-blue transition-colors"
+                style={{
+                  fontWeight: '700',
+                  color: '#1e3a8a',
+                  fontSize: '15px',
+                  textDecoration: 'none',
+                  transition: 'color 0.2s'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.color = '#2563eb'}
+                onMouseLeave={(e) => e.currentTarget.style.color = '#1e3a8a'}
               >
                 {profile.full_name}
               </Link>
               {profile.is_gold && (
-                <Award size={14} className="text-amber-500 fill-amber-500" />
+                <Award size={14} style={{ color: '#f59e0b', fill: '#f59e0b' }} />
               )}
               {profile.career_verified && !profile.is_gold && (
-                <CheckCircle2 size={14} className="text-brand-blue" />
+                <CheckCircle2 size={14} style={{ color: '#1E3A8A' }} />
               )}
-
               {isCommitted && (
-                <span className="text-[9px] font-bold bg-slate-100 text-slate-400 border border-slate-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                <span style={{
+                  fontSize: '9px',
+                  fontWeight: '700',
+                  background: '#f1f5f9',
+                  color: '#94a3b8',
+                  border: '1px solid #e2e8f0',
+                  padding: '2px 6px',
+                  borderRadius: '6px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '3px'
+                }}>
                   <Lock size={8} /> Taken
                 </span>
               )}
             </div>
-            <p className="text-[11px] text-slate-400 font-medium uppercase tracking-wide mt-0.5">
-              {profile.city || "Observing"}
+            <p style={{
+              fontSize: '12px',
+              color: '#94a3b8',
+              fontWeight: '500'
+            }}>
+              {profile.job_title && profile.company 
+                ? `${profile.job_title} at ${profile.company}` 
+                : profile.city || "Observing"}
             </p>
           </div>
         </div>
-        <button className="p-2 text-slate-300 hover:text-slate-600 transition-colors active:scale-95">
+        <button style={{
+          padding: '8px',
+          color: '#cbd5e1',
+          background: 'transparent',
+          border: 'none',
+          borderRadius: '8px',
+          cursor: 'pointer',
+          transition: 'all 0.2s'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = 'rgba(226, 232, 240, 0.5)';
+          e.currentTarget.style.color = '#64748b';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = 'transparent';
+          e.currentTarget.style.color = '#cbd5e1';
+        }}
+        >
           <MoreHorizontal size={20} />
         </button>
       </div>
 
-      {/* 2. CONTENT LAYER */}
-      <div className="relative group">
-        {/* PHOTO POST */}
-        {post.type === "photo" && post.media_url && (
-          <div className="w-full bg-slate-50 relative aspect-[4/5] overflow-hidden">
-            <img
-              src={post.media_url}
-              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.02]"
-              alt="Post"
-            />
+      {/* 2. CONTENT LAYER - LINKEDIN STYLE */}
+      <div style={{ position: 'relative' }}>
+        
+        {/* TEXT POST - LinkedIn Style (Professional) */}
+        {post.type === "text" && (
+          <div style={{
+            padding: '20px 24px',
+            background: 'white'
+          }}>
+            <p style={{
+              fontSize: '15px',
+              lineHeight: '1.6',
+              color: '#1e293b',
+              fontWeight: '400',
+              margin: 0,
+              whiteSpace: 'pre-wrap'
+            }}>
+              {post.caption}
+            </p>
           </div>
         )}
 
-        {/* TEXT POST */}
-        {post.type === "text" && (
-          <div className="px-8 py-16 bg-gradient-to-br from-brand-bg to-white flex items-center justify-center min-h-[320px] border-y border-slate-50 relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-32 h-32 bg-blue-100 rounded-full blur-[80px] opacity-20 -translate-x-1/2 -translate-y-1/2"></div>
-            <p className="text-slate-800 text-xl font-display text-center leading-relaxed italic relative z-10 max-w-xs">
-              &ldquo;{post.caption}&rdquo;
-            </p>
+        {/* PHOTO POST */}
+        {post.type === "photo" && post.media_url && (
+          <div style={{
+            width: '100%',
+            background: '#f8fafc',
+            position: 'relative',
+            aspectRatio: '4/5',
+            overflow: 'hidden'
+          }}>
+            <img
+              src={post.media_url}
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                transition: 'transform 0.7s'
+              }}
+              alt="Post"
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+            />
           </div>
         )}
 
         {/* ACHIEVEMENT POST */}
         {post.type === "achievement" && (
-          <div className="px-5 py-8 bg-indigo-50/20 border-y border-slate-50">
-            <div className="bg-white rounded-2xl p-6 border border-indigo-100 shadow-sm flex flex-col items-center text-center">
-              <div className="bg-indigo-50 w-16 h-16 rounded-full flex items-center justify-center text-3xl mb-4 shadow-inner">
+          <div style={{
+            padding: '20px',
+            background: 'rgba(238, 242, 255, 0.3)'
+          }}>
+            <div style={{
+              background: 'white',
+              borderRadius: '16px',
+              padding: '24px',
+              border: '1px solid rgba(99, 102, 241, 0.2)',
+              boxShadow: '0 2px 8px rgba(99, 102, 241, 0.08)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              textAlign: 'center'
+            }}>
+              <div style={{
+                background: 'rgba(99, 102, 241, 0.1)',
+                width: '64px',
+                height: '64px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '32px',
+                marginBottom: '16px',
+                boxShadow: 'inset 0 2px 4px rgba(99, 102, 241, 0.1)'
+              }}>
                 🏆
               </div>
-              <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-2">
+              <span style={{
+                fontSize: '10px',
+                fontWeight: '700',
+                color: '#6366f1',
+                textTransform: 'uppercase',
+                letterSpacing: '1px',
+                marginBottom: '8px'
+              }}>
                 Career Update
               </span>
-              <h4 className="font-bold text-slate-900 text-lg mb-2">
+              <h4 style={{
+                fontWeight: '700',
+                color: '#1e3a8a',
+                fontSize: '18px',
+                marginBottom: '8px',
+                margin: '0 0 8px 0'
+              }}>
                 {post.achievement_title}
               </h4>
-              <p className="text-sm text-slate-500 leading-relaxed max-w-xs">
+              <p style={{
+                fontSize: '14px',
+                color: '#64748b',
+                lineHeight: '1.5',
+                maxWidth: '320px',
+                margin: 0
+              }}>
                 {post.caption}
               </p>
             </div>
           </div>
         )}
 
-        {/* 3. REACTION DOCK */}
+        {/* REACTION DOCK */}
         <AnimatePresence>
           {showReactionDock && (
             <motion.div
               initial={{ opacity: 0, y: 10, scale: 0.9 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 10, scale: 0.9 }}
-              className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-xl rounded-full px-6 py-3 shadow-[0_10px_40px_rgba(0,0,0,0.1)] border border-white/50 flex items-center gap-6 z-20"
+              style={{
+                position: 'absolute',
+                bottom: '24px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                background: 'rgba(255, 255, 255, 0.95)',
+                backdropFilter: 'blur(20px)',
+                borderRadius: '50px',
+                padding: '12px 24px',
+                boxShadow: '0 10px 40px rgba(0, 0, 0, 0.15)',
+                border: '1px solid rgba(255, 255, 255, 0.5)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '24px',
+                zIndex: 20
+              }}
             >
               {reactions.map((r) => (
                 <button
                   key={r.emoji}
                   onClick={() => handleReaction(r.emoji)}
-                  className="flex flex-col items-center gap-1 group transition-transform active:scale-90"
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '4px',
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    transition: 'transform 0.2s',
+                    position: 'relative'
+                  }}
+                  onMouseEnter={(e) => {
+                    const emoji = e.currentTarget.querySelector('span');
+                    if (emoji) (emoji as HTMLElement).style.transform = 'translateY(-4px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    const emoji = e.currentTarget.querySelector('span');
+                    if (emoji) (emoji as HTMLElement).style.transform = 'translateY(0)';
+                  }}
                 >
-                  <span className="text-2xl group-hover:-translate-y-1 transition-transform duration-300">
+                  <span style={{
+                    fontSize: '28px',
+                    transition: 'transform 0.3s'
+                  }}>
                     {r.emoji}
                   </span>
-                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest opacity-0 group-hover:opacity-100 absolute -bottom-4 transition-opacity whitespace-nowrap">
+                  <span style={{
+                    fontSize: '9px',
+                    fontWeight: '700',
+                    color: '#94a3b8',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                    whiteSpace: 'nowrap'
+                  }}>
                     {r.label}
                   </span>
                 </button>
               ))}
-              <div className="w-px h-8 bg-slate-200 mx-1"></div>
+              <div style={{
+                width: '1px',
+                height: '32px',
+                background: '#e2e8f0',
+                margin: '0 4px'
+              }} />
               <button
                 onClick={() => setShowReactionDock(false)}
-                className="text-slate-300 hover:text-slate-500 transition-colors"
+                style={{
+                  color: '#cbd5e1',
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  transition: 'color 0.2s',
+                  display: 'flex',
+                  padding: '4px'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.color = '#64748b'}
+                onMouseLeave={(e) => e.currentTarget.style.color = '#cbd5e1'}
               >
                 <X size={20} />
               </button>
@@ -219,113 +418,218 @@ export default function FeedCard({
         </AnimatePresence>
       </div>
 
+      {/* 3. PHOTO CAPTION (if photo post has caption) */}
+      {post.type === "photo" && post.caption && (
+        <div style={{
+          padding: '16px 24px 0',
+          background: 'white'
+        }}>
+          <p style={{
+            fontSize: '14px',
+            color: '#475569',
+            lineHeight: '1.5',
+            margin: 0
+          }}>
+            <span style={{
+              fontWeight: '700',
+              color: '#1e3a8a',
+              marginRight: '8px'
+            }}>
+              {profile.full_name}
+            </span>
+            {post.caption}
+          </p>
+        </div>
+      )}
+
       {/* 4. SOCIAL SHIELD PILLS */}
-      <div className="px-5 pt-5 pb-2 flex gap-3">
+      <div style={{
+        padding: '16px 20px 12px',
+        display: 'flex',
+        gap: '12px'
+      }}>
         {/* Career Pill */}
         <div
           onClick={isConnected ? undefined : onSocialUnlock}
-          className={`flex-1 group cursor-pointer flex items-center justify-between px-3 py-2.5 rounded-xl border transition-all duration-300 ${
-            isConnected
-              ? "bg-indigo-50/40 border-indigo-100"
-              : "bg-slate-50 border-slate-100 hover:bg-white hover:border-slate-200 hover:shadow-sm"
-          }`}
+          style={{
+            flex: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '10px 12px',
+            borderRadius: '12px',
+            border: `1px solid ${isConnected ? 'rgba(99, 102, 241, 0.2)' : '#e2e8f0'}`,
+            background: isConnected ? 'rgba(99, 102, 241, 0.05)' : '#f8fafc',
+            cursor: isConnected ? 'default' : 'pointer',
+            transition: 'all 0.2s'
+          }}
+          onMouseEnter={(e) => {
+            if (!isConnected) {
+              e.currentTarget.style.background = 'white';
+              e.currentTarget.style.borderColor = '#cbd5e1';
+              e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.05)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!isConnected) {
+              e.currentTarget.style.background = '#f8fafc';
+              e.currentTarget.style.borderColor = '#e2e8f0';
+              e.currentTarget.style.boxShadow = 'none';
+            }
+          }}
         >
-          <div className="flex items-center gap-2">
-            <div
-              className={`p-1.5 rounded-full ${
-                isConnected
-                  ? "bg-indigo-100 text-indigo-600"
-                  : "bg-slate-200 text-slate-400"
-              }`}
-            >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{
+              padding: '6px',
+              borderRadius: '50%',
+              background: isConnected ? 'rgba(99, 102, 241, 0.15)' : '#e2e8f0',
+              color: isConnected ? '#6366f1' : '#94a3b8',
+              display: 'flex'
+            }}>
               <Linkedin size={12} />
             </div>
-            <div className="flex flex-col">
-              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+            <div>
+              <span style={{
+                fontSize: '9px',
+                fontWeight: '700',
+                color: '#94a3b8',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                display: 'block',
+                marginBottom: '2px'
+              }}>
                 Career
               </span>
-              {isConnected ? (
-                <span className="text-[11px] font-bold text-slate-900 leading-none">
-                  {profile.job_title || "Verified"}
-                </span>
-              ) : (
-                <span className="text-[11px] font-medium text-slate-500 leading-none">
-                  Top Tier Firm
-                </span>
-              )}
+              <span style={{
+                fontSize: '11px',
+                fontWeight: isConnected ? '700' : '500',
+                color: isConnected ? '#1e3a8a' : '#64748b',
+                display: 'block'
+              }}>
+                {isConnected ? (profile.job_title || "Verified") : "Top Tier Firm"}
+              </span>
             </div>
           </div>
           {!isConnected && (
-            <Lock
-              size={12}
-              className="text-slate-300 group-hover:text-amber-500 transition-colors"
-            />
+            <Lock size={12} style={{ color: '#cbd5e1' }} />
           )}
         </div>
 
         {/* Vibe Pill */}
         <div
           onClick={isConnected ? undefined : onSocialUnlock}
-          className={`flex-1 group cursor-pointer flex items-center justify-between px-3 py-2.5 rounded-xl border transition-all duration-300 ${
-            isConnected
-              ? "bg-pink-50/40 border-pink-100"
-              : "bg-slate-50 border-slate-100 hover:bg-white hover:border-slate-200 hover:shadow-sm"
-          }`}
+          style={{
+            flex: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '10px 12px',
+            borderRadius: '12px',
+            border: `1px solid ${isConnected ? 'rgba(236, 72, 153, 0.2)' : '#e2e8f0'}`,
+            background: isConnected ? 'rgba(236, 72, 153, 0.05)' : '#f8fafc',
+            cursor: isConnected ? 'default' : 'pointer',
+            transition: 'all 0.2s'
+          }}
+          onMouseEnter={(e) => {
+            if (!isConnected) {
+              e.currentTarget.style.background = 'white';
+              e.currentTarget.style.borderColor = '#cbd5e1';
+              e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.05)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!isConnected) {
+              e.currentTarget.style.background = '#f8fafc';
+              e.currentTarget.style.borderColor = '#e2e8f0';
+              e.currentTarget.style.boxShadow = 'none';
+            }
+          }}
         >
-          <div className="flex items-center gap-2">
-            <div
-              className={`p-1.5 rounded-full ${
-                isConnected
-                  ? "bg-pink-100 text-pink-600"
-                  : "bg-slate-200 text-slate-400"
-              }`}
-            >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{
+              padding: '6px',
+              borderRadius: '50%',
+              background: isConnected ? 'rgba(236, 72, 153, 0.15)' : '#e2e8f0',
+              color: isConnected ? '#ec4899' : '#94a3b8',
+              display: 'flex'
+            }}>
               <Instagram size={12} />
             </div>
-            <div className="flex flex-col">
-              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+            <div>
+              <span style={{
+                fontSize: '9px',
+                fontWeight: '700',
+                color: '#94a3b8',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                display: 'block',
+                marginBottom: '2px'
+              }}>
                 Vibe
               </span>
-              {isConnected ? (
-                <span className="text-[11px] font-bold text-slate-900 leading-none">
-                  Unlocked
-                </span>
-              ) : (
-                <span className="text-[11px] font-medium text-slate-500 leading-none">
-                  Hidden
-                </span>
-              )}
+              <span style={{
+                fontSize: '11px',
+                fontWeight: isConnected ? '700' : '500',
+                color: isConnected ? '#1e3a8a' : '#64748b',
+                display: 'block'
+              }}>
+                {isConnected ? "Unlocked" : "Hidden"}
+              </span>
             </div>
           </div>
           {!isConnected && (
-            <Lock
-              size={12}
-              className="text-slate-300 group-hover:text-amber-500 transition-colors"
-            />
+            <Lock size={12} style={{ color: '#cbd5e1' }} />
           )}
         </div>
       </div>
 
       {/* 5. ACTIONS BAR */}
-      <div className="px-5 pb-6 pt-2 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
+      <div style={{
+        padding: '12px 20px 20px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '16px'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <button
             onClick={() => setShowReactionDock(!showReactionDock)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-full transition-all duration-300 active:scale-95 border ${
-              reactionType
-                ? "bg-rose-50 border-rose-100 text-rose-600 shadow-sm"
-                : "bg-white border-slate-200 text-slate-600 hover:border-slate-300"
-            }`}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '10px 16px',
+              borderRadius: '50px',
+              transition: 'all 0.3s',
+              border: reactionType ? '1px solid rgba(244, 63, 94, 0.2)' : '1px solid #e2e8f0',
+              background: reactionType ? 'rgba(244, 63, 94, 0.05)' : 'white',
+              color: reactionType ? '#f43f5e' : '#64748b',
+              cursor: 'pointer',
+              fontFamily: 'inherit'
+            }}
+            onMouseEnter={(e) => {
+              if (!reactionType) {
+                e.currentTarget.style.borderColor = '#cbd5e1';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!reactionType) {
+                e.currentTarget.style.borderColor = '#e2e8f0';
+              }
+            }}
           >
             {reactionType ? (
-              <span className="text-lg animate-in zoom-in spin-in-12 duration-300">
-                {reactionType}
-              </span>
+              <span style={{ fontSize: '18px' }}>{reactionType}</span>
             ) : (
               <Heart size={18} />
             )}
             {!reactionType && (
-              <span className="text-xs font-bold uppercase tracking-wide">
+              <span style={{
+                fontSize: '12px',
+                fontWeight: '700',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px'
+              }}>
                 React
               </span>
             )}
@@ -333,7 +637,26 @@ export default function FeedCard({
 
           <button
             onClick={onComment}
-            className="p-2.5 rounded-full border border-transparent text-slate-400 hover:bg-slate-50 hover:text-slate-600 hover:border-slate-200 transition-all active:scale-95"
+            style={{
+              padding: '10px',
+              borderRadius: '50%',
+              border: '1px solid transparent',
+              color: '#94a3b8',
+              background: 'transparent',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              display: 'flex'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = '#f8fafc';
+              e.currentTarget.style.color = '#64748b';
+              e.currentTarget.style.borderColor = '#e2e8f0';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.color = '#94a3b8';
+              e.currentTarget.style.borderColor = 'transparent';
+            }}
           >
             <MessageCircle size={20} />
           </button>
@@ -343,41 +666,76 @@ export default function FeedCard({
         {isConnected ? (
           <button
             onClick={() => onConnect("message")}
-            className="px-6 py-2.5 bg-slate-100 text-slate-900 rounded-full font-bold text-sm hover:bg-slate-200 transition-all active:scale-95"
+            style={{
+              padding: '10px 24px',
+              background: '#f1f5f9',
+              color: '#1e3a8a',
+              borderRadius: '50px',
+              fontWeight: '700',
+              fontSize: '14px',
+              border: 'none',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              fontFamily: 'inherit'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.background = '#e2e8f0'}
+            onMouseLeave={(e) => e.currentTarget.style.background = '#f1f5f9'}
           >
             Message
           </button>
         ) : isCommitted ? (
           <button
             onClick={() => alert(`${profile.full_name} is currently committed.`)}
-            className="px-5 py-2.5 bg-slate-50 text-slate-400 rounded-full font-bold text-xs border border-slate-100 flex items-center gap-2 cursor-not-allowed"
+            style={{
+              padding: '10px 20px',
+              background: '#f8fafc',
+              color: '#94a3b8',
+              borderRadius: '50px',
+              fontWeight: '700',
+              fontSize: '12px',
+              border: '1px solid #e2e8f0',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'not-allowed',
+              fontFamily: 'inherit'
+            }}
           >
             <Lock size={12} /> Unavailable
           </button>
         ) : (
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+          <button
             onClick={() => onConnect("connect")}
-            className="px-8 py-3 bg-brand-blue text-white rounded-full font-bold text-sm shadow-xl shadow-blue-200 flex items-center gap-2"
+            style={{
+              padding: '12px 32px',
+              background: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)',
+              color: 'white',
+              borderRadius: '50px',
+              fontWeight: '700',
+              fontSize: '14px',
+              boxShadow: '0 8px 24px rgba(30, 58, 138, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              border: 'none',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              fontFamily: 'inherit'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 10px 28px rgba(30, 58, 138, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 8px 24px rgba(30, 58, 138, 0.3)';
+            }}
           >
             Connect{" "}
-            <Zap size={14} className="fill-brand-gold text-brand-gold" />
-          </motion.button>
+            <Zap size={14} style={{ fill: '#D4AF37', color: '#D4AF37' }} />
+          </button>
         )}
       </div>
-
-      {/* 6. CAPTION FOOTER */}
-      {post.type === "photo" && post.caption && (
-        <div className="px-6 pb-6 pt-0">
-          <p className="text-sm text-slate-600 leading-relaxed">
-            <span className="font-bold text-slate-900 mr-2">
-              {profile.full_name}
-            </span>
-            {post.caption}
-          </p>
-        </div>
-      )}
     </motion.div>
   );
 }

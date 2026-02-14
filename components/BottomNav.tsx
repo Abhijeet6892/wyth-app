@@ -8,7 +8,7 @@ import { motion } from "framer-motion";
 export default function BottomNav() {
   const pathname = usePathname();
 
-  // Logic: Hide Nav on Login, Onboarding, and Splash
+  // Logic: Hide Nav on Login, Onboarding, and Splash (UNCHANGED)
   const isHidden = pathname === "/login" || pathname.startsWith("/onboarding");
 
   if (isHidden) return null;
@@ -21,28 +21,81 @@ export default function BottomNav() {
   ];
 
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-sm px-6 pointer-events-none">
-      <div className="bg-white/90 backdrop-blur-xl border border-white/40 shadow-[0_20px_40px_rgba(0,0,0,0.1)] rounded-full px-6 py-4 flex justify-between items-center pointer-events-auto">
+    <div style={{
+      position: 'fixed',
+      bottom: '24px',
+      left: '50%',
+      transform: 'translateX(-50%)',
+      zIndex: 50,
+      width: '100%',
+      maxWidth: '448px',
+      padding: '0 24px',
+      pointerEvents: 'none'
+    }}>
+      <div style={{
+        background: 'rgba(255, 255, 255, 0.75)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        border: '1px solid rgba(255, 255, 255, 0.5)',
+        boxShadow: '0 8px 32px rgba(31, 41, 55, 0.1)',
+        borderRadius: '24px',
+        padding: '16px 24px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        pointerEvents: 'auto'
+      }}>
         {tabs.map((tab) => {
           const isActive = pathname === tab.href || (tab.href !== "/" && pathname.startsWith(tab.href));
           const Icon = tab.icon;
 
           return (
-            <Link key={tab.name} href={tab.href} className="relative flex flex-col items-center group">
+            <Link 
+              key={tab.name} 
+              href={tab.href} 
+              style={{
+                position: 'relative',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                textDecoration: 'none'
+              }}
+            >
               {isActive && (
                 <motion.div
                   layoutId="nav-pill"
-                  className="absolute -top-10 w-1.5 h-1.5 bg-brand-gold rounded-full shadow-[0_0_10px_rgba(212,175,55,0.5)]"
+                  style={{
+                    position: 'absolute',
+                    top: '-40px',
+                    width: '6px',
+                    height: '6px',
+                    background: '#D4AF37',
+                    borderRadius: '50%',
+                    boxShadow: '0 0 10px rgba(212, 175, 55, 0.5)'
+                  }}
                   transition={{ type: "spring", stiffness: 300, damping: 30 }}
                 />
               )}
 
               <div
-                className={`transition-all duration-300 ${
-                  isActive
-                    ? "text-brand-blue scale-110"
-                    : "text-slate-400 hover:text-slate-600"
-                }`}
+                style={{
+                  color: isActive ? '#1E3A8A' : '#94a3b8',
+                  transition: 'all 0.3s ease',
+                  transform: isActive ? 'scale(1.1)' : 'scale(1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+                onMouseEnter={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.color = '#64748b';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.color = '#94a3b8';
+                  }
+                }}
               >
                 <Icon size={24} strokeWidth={isActive ? 2.5 : 2} />
               </div>
