@@ -99,7 +99,7 @@ export default function Onboarding() {
 
   // AI & UI State
   const [generatingBio, setGeneratingBio] = useState(false);
-  const [bioTone, setBioTone] = useState<BioTone>('Witty');
+  const [bioTone, setBioTone] = useState<BioTone>('Grounded');
   const [citySearch, setCitySearch] = useState("");
   const [hometownSearch, setHometownSearch] = useState("");
   const [showCityDropdown, setShowCityDropdown] = useState(false);
@@ -1284,7 +1284,7 @@ export default function Onboarding() {
                 <div style={{ padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   {/* Tone Selector */}
                   <div style={{ display: 'flex', gap: '4px', background: 'white', padding: '4px', borderRadius: '8px' }}>
-                    {(['Chill', 'Witty', 'Romantic'] as BioTone[]).map(t => (
+                  {(['Grounded', 'Thoughtful', 'Warm'] as BioTone[]).map(t => (
                       <button 
                         key={t}
                         onClick={() => setBioTone(t)}
