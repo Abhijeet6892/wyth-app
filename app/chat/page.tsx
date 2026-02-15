@@ -22,15 +22,18 @@ import {
   MessageCircle,
 } from "lucide-react";
 
-// Ensure this path matches your file structure
-import { generateChatHelp, type ChatIntent, type ChatMode, type ChatTone } from "../actions/generateChatHelp";
+// ✅ FIXED: Import correct types from new WYTH-PREMIUM version
+import { generateChatHelp, type ChatMode, type ChatTone } from "../actions/generateChatHelp";
+
+// ✅ NEW: Define our own UI intent type (not from the action file)
+type UIIntent = "icebreaker" | "reply" | "decline";
 
 function ChatContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const autoOpenId = searchParams.get("open");
 
-  // --- STATE (UNCHANGED) ---
+  // --- STATE ---
   const [connections, setConnections] = useState<any[]>([]);
   const [activeChat, setActiveChat] = useState<any>(null);
   const [messages, setMessages] = useState<any[]>([]);
@@ -45,12 +48,12 @@ function ChatContent() {
   const [sendingCard, setSendingCard] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // AI States
+  // AI States - ✅ FIXED: Use correct ChatTone type
   const [showAiMenu, setShowAiMenu] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiTone, setAiTone] = useState<ChatTone>("Grounded");
 
-  // --- 1. LOAD DATA (UNCHANGED) ---
+  // --- 1. LOAD DATA ---
   useEffect(() => {
     const loadData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -65,11 +68,10 @@ function ChatContent() {
         setUserIsGold(profile?.is_gold || false);
 
         const { data } = await supabase
-  .from("connections")
-  .select(`*, profiles:receiver_id (id, full_name, avatar_url, is_gold, profile_signals, city, intent)`)
-  //                                                    ✅ Added avatar_url
-  .or(`requester_id.eq.${user.id},receiver_id.eq.${user.id}`)
-  .eq("status", "accepted");
+          .from("connections")
+          .select(`*, profiles:receiver_id (id, full_name, avatar_url, is_gold, profile_signals, city, intent)`)
+          .or(`requester_id.eq.${user.id},receiver_id.eq.${user.id}`)
+          .eq("status", "accepted");
 
         setConnections(data || []);
       }
@@ -78,7 +80,7 @@ function ChatContent() {
     loadData();
   }, []);
 
-  // --- 1.5 AUTO-OPEN (UNCHANGED) ---
+  // --- 1.5 AUTO-OPEN ---
   useEffect(() => {
     if (autoOpenId && connections.length > 0 && !activeChat) {
       const targetChat = connections.find((c) => c.profiles.id === autoOpenId);
@@ -86,7 +88,7 @@ function ChatContent() {
     }
   }, [connections, autoOpenId, activeChat]);
 
-  // --- 2. LOAD MESSAGES & SUBSCRIBE (UNCHANGED) ---
+  // --- 2. LOAD MESSAGES & SUBSCRIBE ---
   useEffect(() => {
     if (!activeChat || !user) return;
 
@@ -123,43 +125,48 @@ function ChatContent() {
     };
   }, [activeChat, user]);
 
-  // --- SAFETY LOGIC (UNCHANGED) ---
+  // --- SAFETY LOGIC ---
   const myMessageCount = messages.filter((m) => m.sender_id === user?.id).length;
   const hasSharedContact = messages.some(
     (m) => m.sender_id === user?.id && m.content === "Verified Contact Card 📇"
   );
   const isLimitReached = !userIsGold && !hasSharedContact && myMessageCount >= 10;
 
-  // --- AI LOGIC (UNCHANGED) ---
-  const handleAiAssist = async (intent: ChatIntent) => {
+  // ✅ FIXED: AI LOGIC with correct types
+  const handleAiAssist = async (uiIntent: UIIntent) => {
     if (!activeChat) return;
     setAiLoading(true);
   
     const lastMsg = messages.length > 0 ? messages[messages.length - 1].content : "";
     
-    // Map intent to mode
-    const intentToMode: Record<ChatIntent, ChatMode> = {
+    // ✅ FIXED: Map UI intent to ChatMode (the new type from generateChatHelp)
+    const intentToMode: Record<UIIntent, ChatMode> = {
       icebreaker: "start_connection",
       reply: "deepen_connection",
       decline: "end_connection",
     };
     
-    // Build partner profile object
+    // ✅ FIXED: Build partner profile object with correct structure
     const partnerProfile = {
       name: activeChat.profiles.full_name,
-      city: activeChat.profiles.city,
+      city: activeChat.profiles.city || "",
+      intent: activeChat.profiles.intent || "",
       lastMessage: lastMsg,
     };
   
     try {
-      const { primary } = await generateChatHelp(
-        intentToMode[intent],  // ✅ Correct: ChatMode
-        partnerProfile,        // ✅ Correct: object
-        aiTone                 // ✅ Correct: ChatTone
+      // ✅ FIXED: Call with correct parameter order and types
+      const result = await generateChatHelp(
+        intentToMode[uiIntent],  // ChatMode: 'start_connection' | 'deepen_connection' | 'end_connection'
+        partnerProfile,          // PartnerProfile object
+        aiTone                   // ChatTone: 'Grounded' | 'Thoughtful' | 'Warm'
       );
-      setNewMessage(primary);  // ✅ Correct: extract primary from result
+      
+      // ✅ FIXED: Extract primary message from result
+      setNewMessage(result.primary);
       setShowAiMenu(false);
     } catch (e) {
+      console.error("AI Assistant error:", e);
       alert("AI Assistant is taking a break. Try typing manually.");
     } finally {
       setAiLoading(false);
@@ -188,7 +195,7 @@ function ChatContent() {
     if (!error) setNewMessage("");
   };
 
-  // --- ACTIONS (UNCHANGED) ---
+  // --- ACTIONS ---
   const handleDisconnect = async () => {
     if (!confirm(`End connection with ${activeChat.profiles.full_name}?`)) return;
     const { error } = await supabase.rpc("disconnect_user", { target_id: activeChat.profiles.id });
@@ -322,10 +329,11 @@ function ChatContent() {
                     background: 'white',
                     border: '2px solid white'
                   }}>
+                    {/* ✅ FIXED: Use real avatar if available, fallback to DiceBear */}
                     <img
-                      src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${activeChat.profiles.full_name}`}
+                      src={activeChat.profiles.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${activeChat.profiles.full_name}`}
                       alt="avatar"
-                      style={{ width: '100%', height: '100%' }}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     />
                   </div>
                 </div>
@@ -593,10 +601,11 @@ function ChatContent() {
                   background: 'white',
                   border: '2px solid white'
                 }}>
+                  {/* ✅ FIXED: Use real avatar if available, fallback to DiceBear */}
                   <img
-                    src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${conn.profiles.full_name}`}
+                    src={conn.profiles.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${conn.profiles.full_name}`}
                     alt="avatar"
-                    style={{ width: '100%', height: '100%' }}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   />
                 </div>
               </div>
@@ -753,7 +762,7 @@ function ChatContent() {
                 </button>
               </div>
 
-              {/* Tone Selector */}
+              {/* Tone Selector - ✅ FIXED: Use correct ChatTone type */}
               <div style={{
                 display: 'flex',
                 background: '#f1f5f9',
@@ -785,7 +794,7 @@ function ChatContent() {
                 ))}
               </div>
 
-              {/* Suggestions */}
+              {/* Suggestions - ✅ FIXED: Use UIIntent type */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 <button
                   onClick={() => handleAiAssist("icebreaker")}
@@ -799,13 +808,14 @@ function ChatContent() {
                     fontSize: '12px',
                     fontWeight: '500',
                     color: '#1e293b',
-                    cursor: 'pointer',
+                    cursor: aiLoading ? 'not-allowed' : 'pointer',
                     transition: 'background 0.2s',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '8px'
+                    gap: '8px',
+                    opacity: aiLoading ? 0.5 : 1
                   }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = '#dbeafe'}
+                  onMouseEnter={(e) => !aiLoading && (e.currentTarget.style.background = '#dbeafe')}
                   onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                 >
                   🧊 Icebreaker
@@ -822,13 +832,14 @@ function ChatContent() {
                     fontSize: '12px',
                     fontWeight: '500',
                     color: '#1e293b',
-                    cursor: 'pointer',
+                    cursor: aiLoading ? 'not-allowed' : 'pointer',
                     transition: 'background 0.2s',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '8px'
+                    gap: '8px',
+                    opacity: aiLoading ? 0.5 : 1
                   }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = '#dbeafe'}
+                  onMouseEnter={(e) => !aiLoading && (e.currentTarget.style.background = '#dbeafe')}
                   onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                 >
                   ↩️ Polite Reply
@@ -845,13 +856,14 @@ function ChatContent() {
                     fontSize: '12px',
                     fontWeight: '500',
                     color: '#ef4444',
-                    cursor: 'pointer',
+                    cursor: aiLoading ? 'not-allowed' : 'pointer',
                     transition: 'background 0.2s',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '8px'
+                    gap: '8px',
+                    opacity: aiLoading ? 0.5 : 1
                   }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = '#fee2e2'}
+                  onMouseEnter={(e) => !aiLoading && (e.currentTarget.style.background = '#fee2e2')}
                   onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                 >
                   🚫 Say No Nicely
