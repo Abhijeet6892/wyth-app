@@ -46,10 +46,66 @@ const SMOKE_OPTIONS = ["Yes", "No", "Never"];
 // Max file size: 5MB
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
+// --- INTENT-BASED FLOW CONFIGURATION ---
+type Intent = 'exploring' | 'dating' | 'ready_marriage';
+
+const ONBOARDING_FLOWS: Record<Intent, number[]> = {
+  exploring: [1, 2, 3, 4, 4.5, 5, 8, 9, 10],       // 9 screens
+  dating: [1, 2, 3, 4, 4.5, 5, 7, 8, 9, 10],       // 10 screens  
+  ready_marriage: [1, 2, 3, 4, 4.5, 5, 6, 6.5, 7, 8, 9, 10] // 12 screens
+};
+
+// Map intent selection to internal key
+const INTENT_MAP: Record<string, Intent> = {
+  'exploring': 'exploring',
+  'dating': 'dating',
+  'ready_marriage': 'ready_marriage'
+};
+
+// Field validation rules per intent
+const REQUIRED_FIELDS: Record<Intent, { [key: number]: string[] }> = {
+  exploring: {
+    1: ['intent'],
+    2: ['full_name', 'phone_number', 'city', 'gender', 'date_of_birth'],
+    3: ['job_title', 'company'],
+    4: ['bio'],
+    4.5: [], // Social handles optional
+    5: ['photo_face', 'photo_body'],
+    8: ['diet', 'drink', 'smoke'],
+    9: ['location_preference'],
+  },
+  dating: {
+    1: ['intent'],
+    2: ['full_name', 'phone_number', 'city', 'gender', 'date_of_birth'],
+    3: ['job_title', 'company'],
+    4: ['bio'],
+    4.5: [], // Social handles optional
+    5: ['photo_face', 'photo_body'],
+    7: ['religion', 'mother_tongue'], // About family optional
+    8: ['diet', 'drink', 'smoke'],
+    9: ['location_preference'],
+  },
+  ready_marriage: {
+    1: ['intent'],
+    2: ['full_name', 'phone_number', 'city', 'gender', 'date_of_birth'],
+    3: ['job_title', 'company'],
+    4: ['bio'],
+    4.5: [], // Social handles optional
+    5: ['photo_face', 'photo_body'],
+    6: ['hometown', 'family_type', 'values'],
+    6.5: ['political_views'],
+    7: ['religion', 'mother_tongue', 'about_family'],
+    8: ['diet', 'drink', 'smoke'],
+    9: ['location_preference'],
+  }
+};
+
 export default function Onboarding() {
   const router = useRouter();
   const [showSplash, setShowSplash] = useState(true); // NEW: Add this line
   const [step, setStep] = useState(1);
+  const [navigationStack, setNavigationStack] = useState<number[]>([1]);
+  const [selectedIntent, setSelectedIntent] = useState<Intent>('exploring');
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<any>(null);
 
@@ -71,31 +127,34 @@ export default function Onboarding() {
     ghost_mode: false,
     // Step 4
     bio: "",
+    // Step 4.5 (NEW - was at step 9)
+    linkedin_handle: "",
+    instagram_handle: "",
     // Step 5
     photo_face: "",
     photo_body: "",
     photo_hobby: "",
-    // Step 6
+    // Step 6 (NEW - Roots)
     hometown: "",
     family_type: "",
     values: "",
-    // Step 7
+    // Step 6.5 (NEW - Values)
+    political_views: "",
+    // Step 7 (Culture)
     religion: "",
     mother_tongue: "",
     about_family: "",
-    // Step 8
+    // Step 8 (Lifestyle)
     diet: "",
     drink: "",
     smoke: "",
-    // Step 9
+    // Step 9 (Preferences)
     age_min: 24,
     age_max: 35,
     height_min: 152,
     height_max: 183,
     location_preference: "",
     open_to_relocate: false,
-    linkedin_handle: "",
-    instagram_handle: "",
   });
 
   // AI & UI State
@@ -122,6 +181,53 @@ export default function Onboarding() {
     };
     getUser();
   }, [router]);
+
+  // Save progress to database
+  const saveProgress = async (currentStep: number) => {
+    if (!user) return;
+    
+    try {
+      await supabase
+        .from('profiles')
+        .update({
+          onboarding_step: currentStep,
+          intent: selectedIntent
+        })
+        .eq('id', user.id);
+    } catch (error) {
+      console.error('Error saving progress:', error);
+    }
+  };
+
+  // Resume from saved progress on mount
+  useEffect(() => {
+    const resumeProgress = async () => {
+      if (!user) return;
+      
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('onboarding_step, intent, onboarding_complete')
+        .eq('id', user.id)
+        .single();
+      
+      if (profile && !profile.onboarding_complete) {
+        if (profile.onboarding_step) {
+          setStep(profile.onboarding_step);
+          // Rebuild navigation stack
+          const intent = (profile.intent || 'exploring') as Intent;
+          setSelectedIntent(intent);
+          const flow = ONBOARDING_FLOWS[intent];
+          const visitedSteps = flow.filter(s => s <= profile.onboarding_step);
+          setNavigationStack(visitedSteps);
+        }
+        if (profile.intent) {
+          setSelectedIntent(profile.intent as Intent);
+        }
+      }
+    };
+    
+    resumeProgress();
+  }, [user]);
 
   // Processing screen messages
   const processingMessages = [
@@ -211,23 +317,84 @@ export default function Onboarding() {
   };
 
   // --- OTHER HANDLERS ---
-  const handleNext = () => {
-    if (step === 4) {
-      setStep(4.5); // Go to Connect Your Socials
-    } else if (step === 4.5) {
-      setStep(5); // Go to Photos
-    } else {
-      setStep(prev => prev + 1);
+  // --- INTENT-BASED NAVIGATION HELPERS ---
+
+  // Get next step based on current intent
+  const getNextStep = (currentStep: number, intent: Intent): number => {
+    const flow = ONBOARDING_FLOWS[intent];
+    const currentIndex = flow.indexOf(currentStep);
+    
+    if (currentIndex === -1 || currentIndex === flow.length - 1) {
+      return currentStep; // Stay on current if not found or at end
     }
+    
+    return flow[currentIndex + 1];
+  };
+
+  // Check if current step should be shown for this intent
+  const shouldShowStep = (stepNum: number, intent: Intent): boolean => {
+    return ONBOARDING_FLOWS[intent].includes(stepNum);
+  };
+
+  // Validate current step based on intent
+  const validateCurrentStep = (): boolean => {
+    const requiredFields = REQUIRED_FIELDS[selectedIntent][step] || [];
+    
+    for (const field of requiredFields) {
+      const value = formData[field as keyof typeof formData];
+      if (!value || (typeof value === 'string' && value.trim() === '')) {
+        return false;
+      }
+    }
+    
+    return true;
+  };
+
+  // Calculate progress percentage (instead of "Step X of Y")
+  const getProgressPercentage = (): number => {
+    const flow = ONBOARDING_FLOWS[selectedIntent];
+    const currentIndex = flow.indexOf(step);
+    return ((currentIndex + 1) / flow.length) * 100;
+  };
+
+
+  const handleNext = () => {
+    // Validate current step
+    if (!validateCurrentStep()) {
+      alert('Please complete all required fields');
+      return;
+    }
+    
+    // Get next step based on intent
+    const nextStep = getNextStep(step, selectedIntent);
+    
+    if (nextStep === step) {
+      // Already at last step, do nothing
+      return;
+    }
+    
+    // Add to navigation stack
+    setNavigationStack(prev => [...prev, nextStep]);
+    setStep(nextStep);
+    
+    // Save progress
+    saveProgress(nextStep);
   };
   const handleBack = () => {
-    if (step === 4.5) {
-      setStep(4); // Back to Your Vibe
-    } else if (step === 5) {
-      setStep(4.5); // Back to Socials  
-    } else {
-      setStep(prev => prev - 1);
+    if (navigationStack.length <= 1) {
+      // Already at first step
+      return;
     }
+    
+    // Remove current step from stack
+    const newStack = [...navigationStack];
+    newStack.pop();
+    
+    // Get previous step
+    const previousStep = newStack[newStack.length - 1];
+    
+    setNavigationStack(newStack);
+    setStep(previousStep);
   };
 
   const handleCitySelect = (city: string) => {
@@ -590,7 +757,7 @@ export default function Onboarding() {
           <motion.div 
             style={{ height: '100%', background: 'linear-gradient(90deg, #1e3a8a 0%, #2563eb 100%)' }}
             initial={{ width: 0 }}
-            animate={{ width: `${(step / 9) * 100}%` }}
+            animate={{ width: `${getProgressPercentage()}%` }}
             transition={{ duration: 0.5 }}
           />
         </div>
@@ -683,7 +850,11 @@ export default function Onboarding() {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <button 
-                  onClick={() => { setFormData(p => ({...p, intent: 'exploring'})); handleNext(); }}
+                  onClick={() => { 
+                    setFormData(p => ({...p, intent: 'exploring'})); 
+                    setSelectedIntent('exploring'); // NEW
+                    handleNext(); 
+                  }}
                   style={{
                     background: 'white',
                     border: '2px solid rgba(30, 58, 138, 0.15)',
@@ -728,7 +899,11 @@ export default function Onboarding() {
                 </button>
 
                 <button 
-                  onClick={() => { setFormData(p => ({...p, intent: 'dating'})); handleNext(); }}
+                  onClick={() => { 
+                    setFormData(p => ({...p, intent: 'dating'})); 
+                    setSelectedIntent('dating'); // NEW
+                    handleNext(); 
+                  }}
                   style={{
                     background: 'white',
                     border: '2px solid rgba(30, 58, 138, 0.15)',
@@ -773,7 +948,11 @@ export default function Onboarding() {
                 </button>
 
                 <button 
-                  onClick={() => { setFormData(p => ({...p, intent: 'ready_marriage'})); handleNext(); }}
+                  onClick={() => { 
+                    setFormData(p => ({...p, intent: 'ready_marriage'})); 
+                    setSelectedIntent('ready_marriage'); // NEW
+                    handleNext(); 
+                  }}
                   style={{
                     background: 'white',
                     border: '2px solid rgba(30, 58, 138, 0.15)',
@@ -1932,8 +2111,8 @@ export default function Onboarding() {
             </motion.div>
           )}
 
-          {/* STEP 6: ROOTS & VALUES */}
-          {step === 6 && (
+          {/* STEP 6: ROOTS (Marriage only) */}
+          {step === 6 && shouldShowStep(6, selectedIntent) && (
             <motion.div 
               key="step6"
               initial={{ opacity: 0, x: 100 }}
@@ -1963,50 +2142,19 @@ export default function Onboarding() {
                       color: '#64748b'
                     }}/>
                     <input 
-                      value={hometownSearch}
-                      onFocus={() => setShowHometownDropdown(true)}
-                      onChange={e => {
-                        setHometownSearch(e.target.value);
-                        setFormData({...formData, hometown: e.target.value});
-                        setShowHometownDropdown(true);
-                      }}
+                      value={formData.hometown}
+                      onChange={e => setFormData({...formData, hometown: e.target.value})}
                       style={{ ...inputStyle, paddingLeft: '42px' }}
                       placeholder="Where are your roots?"
+                      onFocus={(e) => {
+                        e.currentTarget.style.borderColor = 'rgba(30, 58, 138, 0.5)';
+                        e.currentTarget.style.boxShadow = '0 0 0 3px rgba(30, 58, 138, 0.1)';
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.borderColor = 'rgba(30, 58, 138, 0.2)';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }}
                     />
-                    {showHometownDropdown && hometownSearch.length > 0 && (
-                      <div style={{
-                        position: 'absolute',
-                        top: '100%',
-                        left: 0,
-                        right: 0,
-                        marginTop: '4px',
-                        background: 'white',
-                        borderRadius: '12px',
-                        boxShadow: '0 8px 24px rgba(30, 58, 138, 0.15)',
-                        border: '1px solid rgba(30, 58, 138, 0.1)',
-                        maxHeight: '200px',
-                        overflowY: 'auto',
-                        zIndex: 50
-                      }}>
-                        {CITIES.filter(c => c.toLowerCase().includes(hometownSearch.toLowerCase())).map(city => (
-                          <div 
-                            key={city} 
-                            onClick={() => handleHometownSelect(city)}
-                            style={{
-                              padding: '12px 16px',
-                              cursor: 'pointer',
-                              fontSize: '14px',
-                              color: '#1e3a8a',
-                              transition: 'background 0.2s'
-                            }}
-                            onMouseEnter={(e) => e.currentTarget.style.background = '#f1f5f9'}
-                            onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
-                          >
-                            {city}
-                          </div>
-                        ))}
-                      </div>
-                    )}
                   </div>
                 </div>
 
@@ -2084,20 +2232,15 @@ export default function Onboarding() {
                     transition: 'all 0.2s',
                     fontFamily: 'inherit'
                   }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(100, 116, 139, 0.1)'}
-                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                 >
                   <ArrowLeft size={18} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'middle' }}/>
                   Back
                 </button>
                 <button 
                   onClick={handleNext} 
-                  disabled={!isStep6Valid}
                   style={{
                     ...buttonPrimaryStyle,
                     flex: 1,
-                    opacity: !isStep6Valid ? 0.5 : 1,
-                    cursor: !isStep6Valid ? 'not-allowed' : 'pointer'
                   }}
                 >
                   Continue
@@ -2106,8 +2249,91 @@ export default function Onboarding() {
             </motion.div>
           )}
 
-          {/* STEP 7: CULTURE & FAMILY */}
-          {step === 7 && (
+          {/* STEP 6.5: VALUES/POLITICAL (Marriage only) */}
+          {step === 6.5 && shouldShowStep(6.5, selectedIntent) && (
+            <motion.div 
+              key="step6-5"
+              initial={{ opacity: 0, x: 100 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -100 }}
+              style={glassCardStyle}
+            >
+              <div style={{ marginBottom: '24px' }}>
+                <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#1e3a8a', marginBottom: '8px' }}>
+                  Your Values
+                </h2>
+                <p style={{ color: '#64748b', fontSize: '14px' }}>
+                  What matters to you politically and culturally.
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                {/* Political Views */}
+                <div>
+                  <label style={labelStyle}>Political Views *</label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    {['Liberal', 'Progressive', 'Moderate', 'Conservative', 'Apolitical'].map(view => (
+                      <button
+                        key={view}
+                        onClick={() => setFormData({...formData, political_views: view})}
+                        style={{
+                          padding: '10px 16px',
+                          borderRadius: '12px',
+                          fontSize: '14px',
+                          fontWeight: '600',
+                          border: formData.political_views === view ? '2px solid #1e3a8a' : '2px solid rgba(30, 58, 138, 0.2)',
+                          background: formData.political_views === view ? '#1e3a8a' : 'white',
+                          color: formData.political_views === view ? 'white' : '#64748b',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease',
+                          fontFamily: 'inherit',
+                          boxSizing: 'border-box'
+                        }}
+                      >
+                        {view}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Open to Relocate (already in Step 9, might duplicate) */}
+                {/* You can decide if this stays in Step 9 or moves here */}
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+                <button 
+                  onClick={handleBack}
+                  style={{
+                    padding: '14px 20px',
+                    borderRadius: '12px',
+                    fontWeight: '600',
+                    fontSize: '15px',
+                    color: '#64748b',
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    fontFamily: 'inherit'
+                  }}
+                >
+                  <ArrowLeft size={18} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'middle' }}/>
+                  Back
+                </button>
+                <button 
+                  onClick={handleNext} 
+                  style={{
+                    ...buttonPrimaryStyle,
+                    flex: 1,
+                  }}
+                >
+                  Continue
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* STEP 7: CULTURE (Dating & Marriage) */}
+          {step === 7 && shouldShowStep(7, selectedIntent) && (
             <motion.div 
               key="step7"
               initial={{ opacity: 0, x: 100 }}
@@ -2201,9 +2427,11 @@ export default function Onboarding() {
                   </div>
                 </div>
 
-                {/* About Family (Optional) */}
+                {/* About Family */}
                 <div>
-                  <label style={labelStyle}>About Family (Optional)</label>
+                  <label style={labelStyle}>
+                    About Family {selectedIntent === 'ready_marriage' ? '*' : '(Optional)'}
+                  </label>
                   <textarea 
                     value={formData.about_family}
                     onChange={e => setFormData({...formData, about_family: e.target.value})}
