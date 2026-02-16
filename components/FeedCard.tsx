@@ -1,5 +1,7 @@
 "use client";
 
+import VerificationBadge from './VerificationBadge';
+import SocialVerificationBadges from './SocialVerificationBadges';
 import { useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -19,6 +21,9 @@ import {
 
 // --- TYPES ---
 interface Profile {
+  subscription_tier?: 'free' | 'gold' | 'premium';
+  linkedin_verified?: boolean;
+  instagram_verified?: boolean;
   id?: string;
   full_name: string;
   avatar_url?: string;      // ✅ ADDED - Real photo support
@@ -146,26 +151,28 @@ export default function FeedCard({
 
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
-              <Link
-                href={profileLink}
-                style={{
-                  fontWeight: '700',
-                  color: '#1e3a8a',
-                  fontSize: '15px',
-                  textDecoration: 'none',
-                  transition: 'color 0.2s'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.color = '#2563eb'}
-                onMouseLeave={(e) => e.currentTarget.style.color = '#1e3a8a'}
-              >
-                {profile.full_name}
-              </Link>
-              {profile.is_gold && (
-                <Award size={14} style={{ color: '#f59e0b', fill: '#f59e0b' }} />
-              )}
-              {profile.career_verified && !profile.is_gold && (
-                <CheckCircle2 size={14} style={{ color: '#1E3A8A' }} />
-              )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Link
+                  href={profileLink}
+                  style={{
+                    fontWeight: '700',
+                    color: '#1e3a8a',
+                    fontSize: '15px',
+                    textDecoration: 'none',
+                    transition: 'color 0.2s'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = '#2563eb'}
+                  onMouseLeave={(e) => e.currentTarget.style.color = '#1e3a8a'}
+                >
+                  {profile.full_name}
+                </Link>
+                <VerificationBadge tier={profile.subscription_tier || 'free'} size={16} />
+                <SocialVerificationBadges
+                  instagramVerified={profile.instagram_verified}
+                  linkedinVerified={profile.linkedin_verified}
+                  size={14}
+                />
+              </div>
               {isCommitted && (
                 <span style={{
                   fontSize: '9px',

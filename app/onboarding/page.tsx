@@ -9,7 +9,7 @@ import {
   Sparkles, Camera, Loader2, IndianRupee, 
   ChevronDown, Lock, Home, Users, Compass,
   Church, Languages, Utensils, Wine, Cigarette,
-  Ruler, Navigation, ArrowLeft, CheckCircle2, XCircle
+  Ruler, Navigation, ArrowLeft, CheckCircle2, XCircle, Shield
 } from "lucide-react";
 
 // CONNECT THE AI BRAIN
@@ -48,6 +48,7 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
 export default function Onboarding() {
   const router = useRouter();
+  const [showSplash, setShowSplash] = useState(true); // NEW: Add this line
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<any>(null);
@@ -210,8 +211,24 @@ export default function Onboarding() {
   };
 
   // --- OTHER HANDLERS ---
-  const handleNext = () => setStep(prev => prev + 1);
-  const handleBack = () => setStep(prev => prev - 1);
+  const handleNext = () => {
+    if (step === 4) {
+      setStep(4.5); // Go to Connect Your Socials
+    } else if (step === 4.5) {
+      setStep(5); // Go to Photos
+    } else {
+      setStep(prev => prev + 1);
+    }
+  };
+  const handleBack = () => {
+    if (step === 4.5) {
+      setStep(4); // Back to Your Vibe
+    } else if (step === 5) {
+      setStep(4.5); // Back to Socials  
+    } else {
+      setStep(prev => prev - 1);
+    }
+  };
 
   const handleCitySelect = (city: string) => {
     setFormData({...formData, city});
@@ -371,6 +388,175 @@ export default function Onboarding() {
     display: 'block'
   };
 
+  // NEW: Splash screen check
+  if (showSplash) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 50%, #fef3c7 100%)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '20px'
+      }}>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          style={{
+            background: 'rgba(255, 255, 255, 0.85)',
+            backdropFilter: 'blur(20px)',
+            borderRadius: '32px',
+            padding: '60px 40px',
+            maxWidth: '480px',
+            width: '100%',
+            textAlign: 'center' as const,
+            boxShadow: '0 20px 60px rgba(31, 41, 55, 0.15)',
+            border: '1px solid rgba(255, 255, 255, 0.6)'
+          }}
+        >
+          {/* Logo */}
+          <div style={{ marginBottom: '32px' }}>
+            {/* Logo */}
+  <div style={{ 
+    width: '100%', 
+    maxWidth: 'min(200px, 60vw)', 
+    margin: '0 auto 16px',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center'
+  }}>
+    <svg 
+      xmlns="http://www.w3.org/2000/svg" 
+      viewBox="0 0 340 100" 
+      width="100%" 
+      height="auto" 
+      preserveAspectRatio="xMidYMid meet" 
+      aria-label="WYTH Logo" 
+      style={{ 
+        maxHeight: 'clamp(40px, 10vw, 50px)',
+        display: 'block'
+      }}
+    >
+      <defs>
+        <linearGradient id="weldShine" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" style={{ stopColor: '#1E3A8A', stopOpacity: 1 }} />
+          <stop offset="50%" style={{ stopColor: '#2E4F9E', stopOpacity: 1 }} />
+          <stop offset="100%" style={{ stopColor: '#1E3A8A', stopOpacity: 1 }} />
+        </linearGradient>
+      </defs>
+      <style>{`
+        .brand-blue { fill: #1E3A8A; }
+        .anchor-letter { opacity: 0; animation: riseUp 1s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+        .letter-y { opacity: 0; animation: riseUp 1s cubic-bezier(0.2, 0.8, 0.2, 1) 0.1s forwards; }
+        .letter-t { opacity: 0; transform: translateX(20px) translateY(10px); animation: slideConnect 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) 0.3s forwards; }
+        .fusion-joint { opacity: 0; fill: url(#weldShine); animation: weldFlash 1s ease-out 1.2s forwards; }
+        @keyframes riseUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideConnect { 0% { opacity: 0; transform: translateX(25px) translateY(15px); } 20% { opacity: 1; } 100% { opacity: 1; transform: translateX(0) translateY(0); } }
+        @keyframes weldFlash { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
+      `}</style>
+      <g>
+        <path className="brand-blue anchor-letter" d="M10,30 Q10,28 12,28 L22,28 Q24,28 24.5,30 L34,68 L43.5,30 Q44,28 46,28 L54,28 Q56,28 56.5,30 L66,68 L75.5,30 Q76,28 78,28 L88,28 Q90,28 90,30 L80,78 Q79,82 75,82 L65,82 Q61,82 60,78 L50,42 L40,78 Q39,82 35,82 L25,82 Q21,82 20,78 Z" />
+        <path className="brand-blue letter-y" d="M105,30 Q105,28 107,28 L118,28 Q120,28 121,30 L134,55 L149,30 Q150,28 152,28 L166,28 Q168,28 168,30 L148,62 L148,78 Q148,82 144,82 L132,82 Q128,82 128,78 L128,62 Z" />
+        <path className="brand-blue letter-t" d="M163,28 L210,28 Q212,28 212,30 L212,40 Q212,42 210,42 L196,42 L196,78 Q196,82 192,82 L180,82 Q176,82 176,78 L176,42 L163,42 Q161,42 161,40 L161,30 Q161,28 163,28 Z" />
+        <path className="brand-blue anchor-letter" style={{ animationDelay: '0.2s' }} d="M225,30 Q225,28 227,28 L239,28 Q241,28 241,30 L241,48 L274,48 L274,30 Q274,28 276,28 L288,28 Q290,28 290,30 L290,78 Q290,82 286,82 L274,82 Q270,82 270,78 L270,60 L241,60 L241,78 Q241,82 237,82 L225,82 Q221,82 221,78 Z" />
+        <rect className="fusion-joint" x="160" y="28" width="10" height="14" rx="2" />
+      </g>
+    </svg>
+  </div>
+</div>
+
+          {/* Tagline */}
+          <h2 style={{
+            fontSize: '24px',
+            fontWeight: '600',
+            color: '#1e3a8a',
+            marginBottom: '12px',
+            lineHeight: '1.3'
+          }}>
+            Find Your Life Partner,<br />Your Way
+          </h2>
+
+          <p style={{
+            fontSize: '15px',
+            color: '#64748b',
+            marginBottom: '40px',
+            lineHeight: '1.6'
+          }}>
+            Not arranged. Not casual. Just real connections with serious people.
+          </p>
+
+          {/* Benefits */}
+          <div style={{ marginBottom: '40px' }}>
+            {[
+              { icon: '🎯', text: '5 intentional connection slots' },
+              { icon: '🤝', text: 'Trust-based community with vouches' },
+              { icon: '💬', text: 'AI helps you communicate better' },
+              { icon: '🔒', text: 'Marriage-minded, not desperate' }
+            ].map((benefit, idx) => (
+              <div key={idx} style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                padding: '12px',
+                marginBottom: '8px',
+                textAlign: 'left' as const
+              }}>
+                <span style={{ fontSize: '24px' }}>{benefit.icon}</span>
+                <span style={{
+                  fontSize: '14px',
+                  color: '#475569',
+                  fontWeight: '500'
+                }}>
+                  {benefit.text}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* Get Started Button */}
+          <button
+            onClick={() => setShowSplash(false)}
+            style={{
+              width: '100%',
+              background: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '16px',
+              padding: '18px',
+              fontSize: '16px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              marginBottom: '16px',
+              boxShadow: '0 4px 12px rgba(30, 58, 138, 0.3)',
+              transition: 'all 0.2s'
+            }}
+          >
+            Get Started
+          </button>
+
+          {/* Login Link */}
+          <p style={{ fontSize: '14px', color: '#64748b' }}>
+            Already have an account?{' '}
+            <button
+              onClick={() => router.push('/login')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#1e3a8a',
+                fontWeight: '600',
+                cursor: 'pointer',
+                textDecoration: 'underline'
+              }}
+            >
+              Login
+            </button>
+          </p>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // If showSplash is false, continue with existing onboarding flow
   return (
     <div style={containerStyle}>
       
@@ -1089,168 +1275,6 @@ export default function Onboarding() {
                   Let AI write your intro. Just drop a rough draft.
                 </p>
               </div>
-              {/* STEP 4.5: SOCIAL HANDLES (OPTIONAL) — shown as part of step 4 */}
-              <motion.div
-    initial={{ opacity: 0, x: 20 }}
-    animate={{ opacity: 1, x: 0 }}
-    exit={{ opacity: 0, x: -20 }}
-    style={{
-      background: 'rgba(255, 255, 255, 0.75)',
-      backdropFilter: 'blur(20px)',
-      WebkitBackdropFilter: 'blur(20px)',
-      border: '1px solid rgba(255, 255, 255, 0.5)',
-      borderRadius: '32px',
-      padding: '40px 32px',
-      boxShadow: '0 20px 60px rgba(31, 41, 55, 0.1)',
-      maxWidth: '480px',
-      width: '100%'
-    }}
-  >
-    <h2 style={{ 
-      fontSize: '28px', 
-      fontWeight: '700', 
-      color: '#1e3a8a', 
-      marginBottom: '12px',
-      fontFamily: 'Georgia, serif'
-    }}>
-      Connect Your Socials
-    </h2>
-    <p style={{ 
-      fontSize: '15px', 
-      color: '#64748b', 
-      marginBottom: '32px',
-      lineHeight: '1.6'
-    }}>
-      Optional: Link your LinkedIn & Instagram for verification. 
-      These will be locked until someone connects with you.
-    </p>
-
-    {/* LinkedIn */}
-    <label style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      fontSize: '11px',
-      fontWeight: '700',
-      color: '#64748b',
-      textTransform: 'uppercase',
-      letterSpacing: '1px',
-      marginBottom: '8px'
-    }}>
-      <div style={{
-        width: '20px',
-        height: '20px',
-        borderRadius: '4px',
-        background: '#0A66C2',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="white">
-          <path d="M20.5 2h-17A1.5 1.5 0 002 3.5v17A1.5 1.5 0 003.5 22h17a1.5 1.5 0 001.5-1.5v-17A1.5 1.5 0 0020.5 2zM8 19H5v-9h3zM6.5 8.25A1.75 1.75 0 118.3 6.5a1.78 1.78 0 01-1.8 1.75zM19 19h-3v-4.74c0-1.42-.6-1.93-1.38-1.93A1.74 1.74 0 0013 14.19a.66.66 0 000 .14V19h-3v-9h2.9v1.3a3.11 3.11 0 012.7-1.4c1.55 0 3.36.86 3.36 3.66z"/>
-        </svg>
-      </div>
-      LinkedIn Username
-    </label>
-    <input
-      type="text"
-      placeholder="yourname (not full URL)"
-      value={formData.linkedin_handle}
-      onChange={(e) => setFormData({...formData, linkedin_handle: e.target.value})}
-      style={{
-        width: '100%',
-        background: 'rgba(248, 250, 252, 0.8)',
-        border: '1.5px solid rgba(226, 232, 240, 0.5)',
-        borderRadius: '16px',
-        padding: '14px 20px',
-        fontSize: '15px',
-        color: '#1e3a8a',
-        outline: 'none',
-        transition: 'all 0.2s',
-        fontFamily: 'inherit',
-        marginBottom: '20px'
-      }}
-      onFocus={(e) => {
-        e.currentTarget.style.background = 'white';
-        e.currentTarget.style.borderColor = 'rgba(10, 102, 194, 0.3)';
-        e.currentTarget.style.boxShadow = '0 0 0 3px rgba(10, 102, 194, 0.1)';
-      }}
-      onBlur={(e) => {
-        e.currentTarget.style.background = 'rgba(248, 250, 252, 0.8)';
-        e.currentTarget.style.borderColor = 'rgba(226, 232, 240, 0.5)';
-        e.currentTarget.style.boxShadow = 'none';
-      }}
-    />
-
-    {/* Instagram */}
-    <label style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      fontSize: '11px',
-      fontWeight: '700',
-      color: '#64748b',
-      textTransform: 'uppercase',
-      letterSpacing: '1px',
-      marginBottom: '8px'
-    }}>
-      <div style={{
-        width: '20px',
-        height: '20px',
-        borderRadius: '4px',
-        background: 'linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="white">
-          <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
-        </svg>
-      </div>
-      Instagram Handle
-    </label>
-    <input
-      type="text"
-      placeholder="@yourhandle"
-      value={formData.instagram_handle}
-      onChange={(e) => setFormData({...formData, instagram_handle: e.target.value})}
-      style={{
-        width: '100%',
-        background: 'rgba(248, 250, 252, 0.8)',
-        border: '1.5px solid rgba(226, 232, 240, 0.5)',
-        borderRadius: '16px',
-        padding: '14px 20px',
-        fontSize: '15px',
-        color: '#1e3a8a',
-        outline: 'none',
-        transition: 'all 0.2s',
-        fontFamily: 'inherit'
-      }}
-      onFocus={(e) => {
-        e.currentTarget.style.background = 'white';
-        e.currentTarget.style.borderColor = 'rgba(228, 64, 95, 0.3)';
-        e.currentTarget.style.boxShadow = '0 0 0 3px rgba(228, 64, 95, 0.1)';
-      }}
-      onBlur={(e) => {
-        e.currentTarget.style.background = 'rgba(248, 250, 252, 0.8)';
-        e.currentTarget.style.borderColor = 'rgba(226, 232, 240, 0.5)';
-        e.currentTarget.style.boxShadow = 'none';
-      }}
-    />
-
-    <p style={{ 
-      fontSize: '12px', 
-      color: '#94a3b8', 
-      marginTop: '16px', 
-      fontStyle: 'italic',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '6px'
-    }}>
-      <span style={{ fontSize: '16px' }}>🔒</span>
-      These will be locked until someone connects with you
-    </p>
-  </motion.div>
 
               {/* STUDIO CONTAINER */}
               <div style={{
@@ -1370,6 +1394,274 @@ export default function Onboarding() {
                   Looks Good
                 </button>
               </div>
+            </motion.div>
+          )}
+
+          {/* STEP 4.5: CONNECT YOUR SOCIALS (SEPARATE) */}
+          {step === 4.5 && (
+            <motion.div
+              key="step-4-5"
+              initial={{ opacity: 0, x: 100 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -100 }}
+              style={{
+                background: 'rgba(255, 255, 255, 0.75)',
+                backdropFilter: 'blur(20px)',
+                WebkitBackdropFilter: 'blur(20px)',
+                border: '1px solid rgba(255, 255, 255, 0.5)',
+                borderRadius: '32px',
+                padding: '40px 32px',
+                boxShadow: '0 20px 60px rgba(31, 41, 55, 0.1)',
+                maxWidth: '480px',
+                width: '100%'
+              }}
+            >
+              <h2 style={{ 
+                fontSize: '28px', 
+                fontWeight: '700', 
+                color: '#1e3a8a', 
+                marginBottom: '12px',
+                fontFamily: 'Georgia, serif'
+              }}>
+                Connect Your Socials
+              </h2>
+              
+              <p style={{ 
+                fontSize: '15px', 
+                color: '#64748b', 
+                marginBottom: '24px',
+                lineHeight: '1.6'
+              }}>
+                Optional: Link your LinkedIn & Instagram for verification.
+              </p>
+
+              {/* Privacy Disclaimer */}
+              <div style={{
+                background: 'rgba(59, 130, 246, 0.1)',
+                border: '1px solid rgba(59, 130, 246, 0.2)',
+                borderRadius: '16px',
+                padding: '16px',
+                marginBottom: '24px'
+              }}>
+                <div style={{ 
+                  display: 'flex', 
+                  gap: '12px',
+                  alignItems: 'flex-start'
+                }}>
+                  <Shield size={20} style={{ color: '#3b82f6', marginTop: '2px', flexShrink: 0 }} />
+                  <div>
+                    <p style={{
+                      fontSize: '13px',
+                      color: '#1e3a8a',
+                      fontWeight: '600',
+                      marginBottom: '6px'
+                    }}>
+                      Your Privacy Matters
+                    </p>
+                    <p style={{
+                      fontSize: '12px',
+                      color: '#64748b',
+                      lineHeight: '1.5',
+                      margin: 0
+                    }}>
+                      These handles remain <strong>completely private</strong> and anonymous. 
+                      They'll only be visible to Gold and Premium members who connect with you. 
+                      We use them for verification only.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* LinkedIn Input */}
+              <label style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '11px',
+                fontWeight: '700',
+                color: '#64748b',
+                textTransform: 'uppercase' as const,
+                letterSpacing: '1px',
+                marginBottom: '8px'
+              }}>
+                <div style={{
+                  width: '20px',
+                  height: '20px',
+                  borderRadius: '4px',
+                  background: '#0A66C2',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="white">
+                    <path d="M20.5 2h-17A1.5 1.5 0 002 3.5v17A1.5 1.5 0 003.5 22h17a1.5 1.5 0 001.5-1.5v-17A1.5 1.5 0 0020.5 2zM8 19H5v-9h3zM6.5 8.25A1.75 1.75 0 118.3 6.5a1.78 1.78 0 01-1.8 1.75zM19 19h-3v-4.74c0-1.42-.6-1.93-1.38-1.93A1.74 1.74 0 0013 14.19a.66.66 0 000 .14V19h-3v-9h2.9v1.3a3.11 3.11 0 012.7-1.4c1.55 0 3.36.86 3.36 3.66z"/>
+                  </svg>
+                </div>
+                LinkedIn Username
+              </label>
+              
+              <input
+                type="text"
+                placeholder="yourname (not full URL)"
+                value={formData.linkedin_handle}
+                onChange={(e) => setFormData({...formData, linkedin_handle: e.target.value})}
+                style={{
+                  width: '100%',
+                  background: 'rgba(248, 250, 252, 0.8)',
+                  border: '1.5px solid rgba(226, 232, 240, 0.5)',
+                  borderRadius: '16px',
+                  padding: '14px 20px',
+                  fontSize: '15px',
+                  color: '#1e3a8a',
+                  outline: 'none',
+                  marginBottom: '20px',
+                  fontFamily: 'inherit'
+                }}
+              />
+
+              {/* Instagram Input */}
+              <label style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '11px',
+                fontWeight: '700',
+                color: '#64748b',
+                textTransform: 'uppercase' as const,
+                letterSpacing: '1px',
+                marginBottom: '8px'
+              }}>
+                <div style={{
+                  width: '20px',
+                  height: '20px',
+                  borderRadius: '4px',
+                  background: 'linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="white">
+                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                  </svg>
+                </div>
+                Instagram Handle
+              </label>
+              
+              <input
+                type="text"
+                placeholder="@yourhandle"
+                value={formData.instagram_handle}
+                onChange={(e) => setFormData({...formData, instagram_handle: e.target.value})}
+                style={{
+                  width: '100%',
+                  background: 'rgba(248, 250, 252, 0.8)',
+                  border: '1.5px solid rgba(226, 232, 240, 0.5)',
+                  borderRadius: '16px',
+                  padding: '14px 20px',
+                  fontSize: '15px',
+                  color: '#1e3a8a',
+                  outline: 'none',
+                  marginBottom: '8px',
+                  fontFamily: 'inherit'
+                }}
+              />
+
+              {/* Lock Info */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '12px',
+                background: 'rgba(251, 191, 36, 0.1)',
+                borderRadius: '12px',
+                marginTop: '16px',
+                marginBottom: '24px'
+              }}>
+                <Lock size={16} style={{ color: '#d97706' }} />
+                <p style={{
+                  fontSize: '13px',
+                  color: '#92400e',
+                  margin: 0
+                }}>
+                  Locked until someone connects with you
+                </p>
+              </div>
+
+              {/* Save & Continue Button */}
+              <button
+                onClick={async () => {
+                  // Save social handles to database
+                  if (user) {
+                    const { error } = await supabase
+                      .from('profiles')
+                      .update({
+                        linkedin_handle: formData.linkedin_handle || null,
+                        instagram_handle: formData.instagram_handle || null,
+                        linkedin_verified: false, // Will verify later
+                        instagram_verified: false // Will verify later
+                      })
+                      .eq('id', user.id);
+                    
+                    if (error) {
+                      console.error('Error saving social handles:', error);
+                    }
+                  }
+                  handleNext();
+                }}
+                style={{
+                  width: '100%',
+                  background: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '16px',
+                  padding: '16px',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  marginBottom: '12px',
+                  boxShadow: '0 4px 12px rgba(30, 58, 138, 0.3)'
+                }}
+              >
+                Save & Continue
+              </button>
+
+              {/* Skip Button */}
+              <button
+                onClick={handleNext}
+                style={{
+                  width: '100%',
+                  background: 'transparent',
+                  color: '#64748b',
+                  border: 'none',
+                  padding: '12px',
+                  fontSize: '14px',
+                  cursor: 'pointer'
+                }}
+              >
+                Skip for now
+              </button>
+
+              {/* Back Button */}
+              {step > 1 && (
+                <button
+                  onClick={handleBack}
+                  style={{
+                    position: 'absolute' as const,
+                    top: '24px',
+                    left: '24px',
+                    background: 'rgba(255, 255, 255, 0.8)',
+                    border: '1px solid rgba(226, 232, 240, 0.5)',
+                    borderRadius: '12px',
+                    padding: '8px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <ArrowLeft size={20} style={{ color: '#64748b' }} />
+                </button>
+              )}
             </motion.div>
           )}
 
