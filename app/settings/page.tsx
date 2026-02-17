@@ -7,7 +7,8 @@ import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   ArrowLeft, User, Heart, Camera, Eye, Zap, ShieldCheck, 
-  LogOut, Trash2, ChevronRight, AlertTriangle, X 
+  LogOut, Trash2, ChevronRight, AlertTriangle, X,
+  Briefcase, Home, Church
 } from 'lucide-react'
 
 export default function Settings() {
@@ -40,16 +41,12 @@ export default function Settings() {
     setDeleting(true)
     
     try {
-      // Get current session
       const { data: { session } } = await supabase.auth.getSession()
       
       if (!session) {
         throw new Error('No active session')
       }
 
-      console.log('Calling delete account Edge Function...')
-
-      // Call the deployed Edge Function
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/delete-account`,
         {
@@ -62,29 +59,23 @@ export default function Settings() {
       )
 
       const result = await response.json()
-      console.log('Delete account response:', result)
 
       if (!response.ok) {
         throw new Error(result.error || 'Failed to delete account')
       }
 
-      console.log('Account deleted successfully via Edge Function')
-
-      // Sign out (user is already deleted from auth)
       await supabase.auth.signOut()
       
       alert('Account deleted successfully. We\'re sorry to see you go.')
       router.push('/login')
       
     } catch (error: any) {
-      console.error('Delete account error:', error)
-      alert(`Error: ${error.message || 'Failed to delete account. Please try again or contact support.'}`)
+      alert(`Error: ${error.message || 'Failed to delete account. Please try again.'}`)
     } finally {
       setDeleting(false)
     }
   }
 
-  // Glassmorphism styles matching your app
   const glassCardStyle: React.CSSProperties = {
     background: 'rgba(255, 255, 255, 0.75)',
     backdropFilter: 'blur(20px)',
@@ -259,21 +250,42 @@ export default function Settings() {
           <SettingsItem 
             icon={User} 
             label="Personal Details" 
-            href="/settings/edit-profile"
+            href="/settings/edit-profile?section=basic"
             color="#1e3a8a"
             bgColor="#e0e7ff"
           />
           <SettingsItem 
-            icon={Camera} 
-            label="Manage Photos" 
-            href="/settings/photos"
+            icon={Briefcase} 
+            label="Career & Income" 
+            href="/settings/edit-profile?section=career"
             color="#2563eb"
             bgColor="#dbeafe"
           />
           <SettingsItem 
+            icon={Camera} 
+            label="Manage Photos" 
+            href="/settings/edit-profile?section=photos"
+            color="#3b82f6"
+            bgColor="#eff6ff"
+          />
+          <SettingsItem 
+            icon={Home} 
+            label="Background & Family" 
+            href="/settings/edit-profile?section=background"
+            color="#059669"
+            bgColor="#ecfdf5"
+          />
+          <SettingsItem 
+            icon={Church} 
+            label="Cultural Background" 
+            href="/settings/edit-profile?section=culture"
+            color="#7c3aed"
+            bgColor="#f5f3ff"
+          />
+          <SettingsItem 
             icon={Heart} 
             label="Partner Preferences" 
-            href="/settings/edit-profile"
+            href="/settings/edit-profile?section=preferences"
             color="#ec4899"
             bgColor="#fce7f3"
           />
@@ -350,7 +362,6 @@ export default function Settings() {
       <AnimatePresence>
         {showDeleteModal && (
           <>
-            {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -371,7 +382,6 @@ export default function Settings() {
                 padding: '20px'
               }}
             >
-              {/* Modal */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -389,7 +399,6 @@ export default function Settings() {
                   position: 'relative'
                 }}
               >
-                {/* Close button */}
                 {!deleting && (
                   <button
                     onClick={() => setShowDeleteModal(false)}
@@ -411,7 +420,6 @@ export default function Settings() {
                   </button>
                 )}
 
-                {/* Warning Icon */}
                 <div style={{
                   width: '64px',
                   height: '64px',
@@ -425,7 +433,6 @@ export default function Settings() {
                   <AlertTriangle size={32} style={{ color: '#dc2626' }} />
                 </div>
 
-                {/* Title */}
                 <h2 style={{
                   fontSize: '24px',
                   fontWeight: '700',
@@ -436,7 +443,6 @@ export default function Settings() {
                   Delete Account?
                 </h2>
 
-                {/* Description */}
                 <p style={{
                   fontSize: '15px',
                   color: '#64748b',
@@ -447,7 +453,6 @@ export default function Settings() {
                   This action cannot be undone. All your data, photos, connections, and messages will be permanently deleted.
                 </p>
 
-                {/* Warning Box */}
                 <div style={{
                   background: 'rgba(239, 68, 68, 0.1)',
                   border: '1px solid rgba(239, 68, 68, 0.2)',
@@ -469,7 +474,6 @@ export default function Settings() {
                   </p>
                 </div>
 
-                {/* Confirmation Input */}
                 <div style={{ marginBottom: '20px' }}>
                   <label style={{
                     fontSize: '13px',
@@ -498,18 +502,9 @@ export default function Settings() {
                       fontFamily: 'inherit',
                       boxSizing: 'border-box'
                     }}
-                    onFocus={(e) => {
-                      e.currentTarget.style.borderColor = 'rgba(220, 38, 38, 0.5)'
-                      e.currentTarget.style.boxShadow = '0 0 0 3px rgba(220, 38, 38, 0.1)'
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.borderColor = 'rgba(226, 232, 240, 0.5)'
-                      e.currentTarget.style.boxShadow = 'none'
-                    }}
                   />
                 </div>
 
-                {/* Action Buttons */}
                 <div style={{ 
                   display: 'flex', 
                   gap: '12px' 

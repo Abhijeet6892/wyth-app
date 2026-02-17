@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { supabase } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -32,6 +33,8 @@ import {
   Globe2,
   Linkedin,
   Instagram,
+  AlertTriangle,
+  X,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { generateBioAction, type BioTone } from "@/app/actions/generateBio";
@@ -61,8 +64,12 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
 type SectionType = 'basic' | 'career' | 'photos' | 'background' | 'culture' | 'lifestyle' | 'preferences' | 'social';
 
+// Allowed sections for validation
+const ALLOWED_SECTIONS: SectionType[] = ['basic', 'career', 'photos', 'background', 'culture', 'lifestyle', 'preferences', 'social'];
+
 export default function EditProfilePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [generatingBio, setGeneratingBio] = useState(false);
@@ -70,6 +77,7 @@ export default function EditProfilePage() {
   const [uploadError, setUploadError] = useState("");
   const [selectedTone, setSelectedTone] = useState<BioTone>('Grounded');
   const [activeSection, setActiveSection] = useState<SectionType>('basic');
+  const [sectionFromUrl, setSectionFromUrl] = useState<SectionType | null>(null);
   const [user, setUser] = useState<any>(null);
 
   // Search states
@@ -77,6 +85,12 @@ export default function EditProfilePage() {
   const [hometownSearch, setHometownSearch] = useState("");
   const [showCityDropdown, setShowCityDropdown] = useState(false);
   const [showHometownDropdown, setShowHometownDropdown] = useState(false);
+
+  // INTENT CHANGE STATES
+  const [showIntentModal, setShowIntentModal] = useState(false);
+  const [pendingIntent, setPendingIntent] = useState<string | null>(null);
+  const [missingIntentFields, setMissingIntentFields] = useState<string[]>([]);
+  const [missingIntentSections, setMissingIntentSections] = useState<SectionType[]>([]);
 
   // Form State - Complete Profile
   const [formData, setFormData] = useState({
@@ -129,6 +143,97 @@ export default function EditProfilePage() {
     linkedin_url: "",
     instagram_handle: "",
   });
+
+  // ===== INTENT CHANGE LOGIC =====
+  const getMissingFieldsForIntent = (newIntent: string): { fields: string[]; sections: SectionType[] } => {
+    const current = formData.intent || 'exploring';
+    
+    // If changing to the same intent, no missing fields
+    if (current === newIntent) return { fields: [], sections: [] };
+
+    // Exploring → Dating: Need Religion + Mother Tongue
+    if (current === 'exploring' && newIntent === 'dating') {
+      const missing = [];
+      const sections: SectionType[] = [];
+      if (!formData.religion) { missing.push('Religion'); sections.push('culture'); }
+      if (!formData.mother_tongue) { missing.push('Mother Tongue'); sections.push('culture'); }
+      return { fields: missing, sections: [...new Set(sections)] };
+    }
+
+    // Exploring → Marriage: Need Roots (6), Values (6.5), Culture (7)
+    if (current === 'exploring' && newIntent === 'ready_marriage') {
+      const missing = [];
+      const sections: SectionType[] = [];
+      if (!formData.hometown) { missing.push('Hometown'); sections.push('background'); }
+      if (!formData.family_type) { missing.push('Family Type'); sections.push('background'); }
+      if (!formData.values) { missing.push('Values'); sections.push('background'); }
+      if (!formData.religion) { missing.push('Religion'); sections.push('culture'); }
+      if (!formData.mother_tongue) { missing.push('Mother Tongue'); sections.push('culture'); }
+      if (!formData.about_family) { missing.push('About Family'); sections.push('culture'); }
+      return { fields: missing, sections: [...new Set(sections)] };
+    }
+
+    // Dating → Marriage: Need Roots (6), Values (6.5), About Family (7)
+    if (current === 'dating' && newIntent === 'ready_marriage') {
+      const missing = [];
+      const sections: SectionType[] = [];
+      if (!formData.hometown) { missing.push('Hometown'); sections.push('background'); }
+      if (!formData.family_type) { missing.push('Family Type'); sections.push('background'); }
+      if (!formData.values) { missing.push('Values'); sections.push('background'); }
+      if (!formData.about_family) { missing.push('About Family'); sections.push('culture'); }
+      return { fields: missing, sections: [...new Set(sections)] };
+    }
+
+    // Downgrading intents
+    return { fields: [], sections: [] };
+  };
+
+  const handleIntentChange = (newIntent: string) => {
+    // Check for missing fields
+    const { fields, sections } = getMissingFieldsForIntent(newIntent);
+
+    if (fields.length > 0) {
+      // Show modal with missing fields
+      setPendingIntent(newIntent);
+      setMissingIntentFields(fields);
+      setMissingIntentSections(sections);
+      setShowIntentModal(true);
+    } else {
+      // No missing fields, update directly
+      setFormData({...formData, intent: newIntent});
+    }
+  };
+
+  const handleIntentConfirm = () => {
+    if (!pendingIntent) return;
+
+    // Update intent in form data
+    setFormData({...formData, intent: pendingIntent});
+    
+    // Navigate to first missing section
+    if (missingIntentSections.length > 0) {
+      setActiveSection(missingIntentSections[0]);
+    }
+    
+    // Close modal
+    setShowIntentModal(false);
+    setPendingIntent(null);
+  };
+
+  // ===== EXISTING LOGIC =====
+
+  // READ QUERY PARAMETER ON MOUNT
+  useEffect(() => {
+    if (!searchParams) return;
+    
+    const sectionParam = searchParams.get('section') as SectionType | null;
+    
+    // Validate section against allowed list
+    if (sectionParam && ALLOWED_SECTIONS.includes(sectionParam)) {
+      setSectionFromUrl(sectionParam);
+      setActiveSection(sectionParam);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -272,8 +377,6 @@ export default function EditProfilePage() {
   const handleSave = async () => {
     setSaving(true);
     if (!user) return;
-
-    const incomeTierIndex = INCOME_BRACKETS.indexOf(formData.income_tier);
 
     const { error } = await supabase
       .from("profiles")
@@ -435,7 +538,8 @@ export default function EditProfilePage() {
                 cursor: 'pointer',
                 transition: 'all 0.2s',
                 whiteSpace: 'nowrap',
-                boxShadow: activeSection === section.id ? '0 4px 12px rgba(30, 58, 138, 0.2)' : '0 1px 3px rgba(0,0,0,0.05)'
+                boxShadow: activeSection === section.id ? '0 4px 12px rgba(30, 58, 138, 0.2)' : '0 1px 3px rgba(0,0,0,0.05)',
+                fontFamily: 'inherit'
               }}
             >
               <Icon size={14} />
@@ -448,156 +552,7 @@ export default function EditProfilePage() {
       {/* Main Content */}
       <div style={{ maxWidth: '640px', margin: '0 auto', padding: '24px 20px' }}>
         <AnimatePresence mode="wait">
-          {/* BASIC SECTION */}
-          {activeSection === 'basic' && (
-            <motion.div
-              key="basic"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}
-            >
-              <GlassCard>
-                <SectionTitle>Basic Information</SectionTitle>
-                
-                <InputField
-                  label="Full Name *"
-                  icon={<User size={16} style={{ color: '#1e3a8a' }} />}
-                  value={formData.full_name}
-                  onChange={(e) => setFormData({...formData, full_name: e.target.value})}
-                  placeholder="e.g. Aditi Rao"
-                />
-
-                <div style={{ marginTop: '16px' }}>
-                  <label style={{
-                    fontSize: '12px',
-                    fontWeight: '600',
-                    color: '#64748b',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
-                    marginBottom: '8px',
-                    display: 'block'
-                  }}>Gender *</label>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    {['Male', 'Female', 'Other'].map(g => (
-                      <button
-                        key={g}
-                        onClick={() => setFormData({...formData, gender: g})}
-                        style={{
-                          flex: 1,
-                          padding: '12px',
-                          borderRadius: '12px',
-                          fontSize: '14px',
-                          fontWeight: '600',
-                          border: formData.gender === g ? '2px solid #1e3a8a' : '2px solid rgba(30, 58, 138, 0.2)',
-                          background: formData.gender === g ? '#1e3a8a' : 'white',
-                          color: formData.gender === g ? 'white' : '#64748b',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s',
-                          fontFamily: 'inherit'
-                        }}
-                      >
-                        {g}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <InputField
-                  label="Date of Birth *"
-                  icon={<Calendar size={16} style={{ color: '#1e3a8a' }} />}
-                  type="date"
-                  value={formData.date_of_birth}
-                  onChange={(e) => setFormData({...formData, date_of_birth: e.target.value})}
-                />
-
-                <InputField
-                  label="Phone Number"
-                  icon={<Phone size={16} style={{ color: '#1e3a8a' }} />}
-                  value={formData.phone}
-                  onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                  placeholder="+91 98765 43210"
-                />
-
-                <div style={{ marginTop: '16px', position: 'relative' }}>
-                  <label style={{
-                    fontSize: '12px',
-                    fontWeight: '600',
-                    color: '#64748b',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
-                    marginBottom: '8px',
-                    display: 'block'
-                  }}>Current City *</label>
-                  <div style={{ position: 'relative' }}>
-                    <MapPin size={18} style={{ 
-                      position: 'absolute', 
-                      left: '14px', 
-                      top: '50%', 
-                      transform: 'translateY(-50%)',
-                      color: '#64748b'
-                    }}/>
-                    <input 
-                      value={citySearch}
-                      onFocus={() => setShowCityDropdown(true)}
-                      onChange={e => {
-                        setCitySearch(e.target.value);
-                        setFormData({...formData, city: e.target.value});
-                        setShowCityDropdown(true);
-                      }}
-                      style={{
-                        width: '100%',
-                        padding: '14px 16px 14px 42px',
-                        borderRadius: '12px',
-                        border: '1.5px solid rgba(30, 58, 138, 0.2)',
-                        backgroundColor: 'white',
-                        fontSize: '15px',
-                        outline: 'none',
-                        fontFamily: 'inherit'
-                      }}
-                      placeholder="Search City..."
-                    />
-                    {showCityDropdown && citySearch.length > 0 && (
-                      <div style={{
-                        position: 'absolute',
-                        top: '100%',
-                        left: 0,
-                        right: 0,
-                        marginTop: '4px',
-                        background: 'white',
-                        borderRadius: '12px',
-                        boxShadow: '0 8px 24px rgba(30, 58, 138, 0.15)',
-                        border: '1px solid rgba(30, 58, 138, 0.1)',
-                        maxHeight: '200px',
-                        overflowY: 'auto',
-                        zIndex: 50
-                      }}>
-                        {CITIES.filter(c => c.toLowerCase().includes(citySearch.toLowerCase())).map(city => (
-                          <div 
-                            key={city} 
-                            onClick={() => handleCitySelect(city)}
-                            style={{
-                              padding: '12px 16px',
-                              cursor: 'pointer',
-                              fontSize: '14px',
-                              color: '#1e3a8a',
-                              transition: 'background 0.2s'
-                            }}
-                            onMouseEnter={(e) => e.currentTarget.style.background = '#f1f5f9'}
-                            onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
-                          >
-                            {city}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </GlassCard>
-            </motion.div>
-          )}
-
-          {/* CAREER SECTION */}
+          {/* CAREER SECTION WITH INTENT SELECTOR */}
           {activeSection === 'career' && (
             <motion.div
               key="career"
@@ -813,18 +768,35 @@ export default function EditProfilePage() {
                 />
               </GlassCard>
 
-              {/* Intent */}
+              {/* HARDCODED INTENT SELECTOR */}
               <GlassCard>
-                <SectionTitle>Current Intent</SectionTitle>
+                <SectionTitle>Your Current Intent</SectionTitle>
+                <div style={{ 
+                  background: 'rgba(226, 232, 240, 0.3)',
+                  padding: '16px',
+                  borderRadius: '12px',
+                  marginBottom: '16px',
+                  borderLeft: '4px solid #2563eb'
+                }}>
+                  <p style={{
+                    fontSize: '12px',
+                    color: '#64748b',
+                    margin: '0 0 12px 0',
+                    lineHeight: '1.5'
+                  }}>
+                    💡 Changing your intent may require you to provide additional information about yourself. Don't worry, we'll guide you through it!
+                  </p>
+                </div>
+
                 <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
                   {[
-                    { value: 'exploring', label: 'Exploring' },
-                    { value: 'dating', label: 'Dating' },
-                    { value: 'ready_marriage', label: 'Marriage' }
+                    { value: 'exploring', label: 'Exploring', emoji: '🌍' },
+                    { value: 'dating', label: 'Dating', emoji: '💕' },
+                    { value: 'ready_marriage', label: 'Marriage', emoji: '💍' }
                   ].map(option => (
                     <button
                       key={option.value}
-                      onClick={() => setFormData({...formData, intent: option.value})}
+                      onClick={() => handleIntentChange(option.value)}
                       style={{
                         flex: 1,
                         padding: '12px',
@@ -835,12 +807,166 @@ export default function EditProfilePage() {
                         background: formData.intent === option.value ? '#1e3a8a' : 'white',
                         color: formData.intent === option.value ? 'white' : '#64748b',
                         cursor: 'pointer',
-                        fontFamily: 'inherit'
+                        fontFamily: 'inherit',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '4px'
                       }}
                     >
+                      <span style={{ fontSize: '16px' }}>{option.emoji}</span>
                       {option.label}
                     </button>
                   ))}
+                </div>
+              </GlassCard>
+            </motion.div>
+          )}
+
+          {/* OTHER SECTIONS (Basic, Photos, Background, Culture, Lifestyle, Preferences, Social) */}
+          {activeSection === 'basic' && (
+            <motion.div
+              key="basic"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}
+            >
+              <GlassCard>
+                <SectionTitle>Basic Information</SectionTitle>
+                
+                <InputField
+                  label="Full Name *"
+                  icon={<User size={16} style={{ color: '#1e3a8a' }} />}
+                  value={formData.full_name}
+                  onChange={(e) => setFormData({...formData, full_name: e.target.value})}
+                  placeholder="e.g. Aditi Rao"
+                />
+
+                <div style={{ marginTop: '16px' }}>
+                  <label style={{
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    color: '#64748b',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                    marginBottom: '8px',
+                    display: 'block'
+                  }}>Gender *</label>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    {['Male', 'Female', 'Other'].map(g => (
+                      <button
+                        key={g}
+                        onClick={() => setFormData({...formData, gender: g})}
+                        style={{
+                          flex: 1,
+                          padding: '12px',
+                          borderRadius: '12px',
+                          fontSize: '14px',
+                          fontWeight: '600',
+                          border: formData.gender === g ? '2px solid #1e3a8a' : '2px solid rgba(30, 58, 138, 0.2)',
+                          background: formData.gender === g ? '#1e3a8a' : 'white',
+                          color: formData.gender === g ? 'white' : '#64748b',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s',
+                          fontFamily: 'inherit'
+                        }}
+                      >
+                        {g}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <InputField
+                  label="Date of Birth *"
+                  icon={<Calendar size={16} style={{ color: '#1e3a8a' }} />}
+                  type="date"
+                  value={formData.date_of_birth}
+                  onChange={(e) => setFormData({...formData, date_of_birth: e.target.value})}
+                />
+
+                <InputField
+                  label="Phone Number"
+                  icon={<Phone size={16} style={{ color: '#1e3a8a' }} />}
+                  value={formData.phone}
+                  onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                  placeholder="+91 98765 43210"
+                />
+
+                <div style={{ marginTop: '16px', position: 'relative' }}>
+                  <label style={{
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    color: '#64748b',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                    marginBottom: '8px',
+                    display: 'block'
+                  }}>Current City *</label>
+                  <div style={{ position: 'relative' }}>
+                    <MapPin size={18} style={{ 
+                      position: 'absolute', 
+                      left: '14px', 
+                      top: '50%', 
+                      transform: 'translateY(-50%)',
+                      color: '#64748b'
+                    }}/>
+                    <input 
+                      value={citySearch}
+                      onFocus={() => setShowCityDropdown(true)}
+                      onChange={e => {
+                        setCitySearch(e.target.value);
+                        setFormData({...formData, city: e.target.value});
+                        setShowCityDropdown(true);
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '14px 16px 14px 42px',
+                        borderRadius: '12px',
+                        border: '1.5px solid rgba(30, 58, 138, 0.2)',
+                        backgroundColor: 'white',
+                        fontSize: '15px',
+                        outline: 'none',
+                        fontFamily: 'inherit'
+                      }}
+                      placeholder="Search City..."
+                    />
+                    {showCityDropdown && citySearch.length > 0 && (
+                      <div style={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: 0,
+                        right: 0,
+                        marginTop: '4px',
+                        background: 'white',
+                        borderRadius: '12px',
+                        boxShadow: '0 8px 24px rgba(30, 58, 138, 0.15)',
+                        border: '1px solid rgba(30, 58, 138, 0.1)',
+                        maxHeight: '200px',
+                        overflowY: 'auto',
+                        zIndex: 50
+                      }}>
+                        {CITIES.filter(c => c.toLowerCase().includes(citySearch.toLowerCase())).map(city => (
+                          <div 
+                            key={city} 
+                            onClick={() => handleCitySelect(city)}
+                            style={{
+                              padding: '12px 16px',
+                              cursor: 'pointer',
+                              fontSize: '14px',
+                              color: '#1e3a8a',
+                              transition: 'background 0.2s'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = '#f1f5f9'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
+                          >
+                            {city}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </GlassCard>
             </motion.div>
@@ -1551,6 +1677,196 @@ export default function EditProfilePage() {
           )}
         </AnimatePresence>
       </div>
+
+      {/* INTENT CHANGE MODAL */}
+      <AnimatePresence>
+        {showIntentModal && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowIntentModal(false)}
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: 'rgba(0, 0, 0, 0.5)',
+                backdropFilter: 'blur(4px)',
+                zIndex: 50,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '20px'
+              }}
+            >
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.95)',
+                  backdropFilter: 'blur(20px)',
+                  borderRadius: '24px',
+                  padding: '32px',
+                  maxWidth: '420px',
+                  width: '100%',
+                  boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+                  border: '1px solid rgba(255, 255, 255, 0.5)',
+                  position: 'relative'
+                }}
+              >
+                {/* Close button */}
+                <button
+                  onClick={() => setShowIntentModal(false)}
+                  style={{
+                    position: 'absolute',
+                    top: '16px',
+                    right: '16px',
+                    background: 'rgba(248, 250, 252, 0.5)',
+                    border: '1px solid rgba(226, 232, 240, 0.5)',
+                    borderRadius: '12px',
+                    padding: '8px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <X size={18} style={{ color: '#64748b' }} />
+                </button>
+
+                {/* Info Icon */}
+                <div style={{
+                  width: '64px',
+                  height: '64px',
+                  borderRadius: '50%',
+                  background: '#dbeafe',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 24px'
+                }}>
+                  <AlertTriangle size={32} style={{ color: '#2563eb' }} />
+                </div>
+
+                {/* Title */}
+                <h2 style={{
+                  fontSize: '24px',
+                  fontWeight: '700',
+                  color: '#1e3a8a',
+                  textAlign: 'center',
+                  marginBottom: '12px'
+                }}>
+                  Complete Your Profile
+                </h2>
+
+                {/* Description */}
+                <p style={{
+                  fontSize: '15px',
+                  color: '#64748b',
+                  textAlign: 'center',
+                  lineHeight: '1.6',
+                  marginBottom: '24px'
+                }}>
+                  To change your intent to <strong>{pendingIntent === 'dating' ? 'Dating' : 'Marriage'}</strong>, you'll need to provide some additional information.
+                </p>
+
+                {/* Missing Fields Box */}
+                <div style={{
+                  background: 'rgba(59, 130, 246, 0.1)',
+                  border: '1px solid rgba(59, 130, 246, 0.2)',
+                  borderRadius: '16px',
+                  padding: '16px',
+                  marginBottom: '24px'
+                }}>
+                  <p style={{
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    color: '#1e3a8a',
+                    marginBottom: '12px'
+                  }}>
+                    ✨ Missing Information:
+                  </p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {missingIntentFields.map((field, idx) => (
+                      <div key={idx} style={{
+                        fontSize: '13px',
+                        color: '#64748b',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}>
+                        <span style={{ color: '#2563eb' }}>•</span>
+                        {field}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Info message */}
+                <p style={{
+                  fontSize: '12px',
+                  color: '#64748b',
+                  textAlign: 'center',
+                  marginBottom: '24px',
+                  fontStyle: 'italic'
+                }}>
+                  We'll guide you to fill in these details on the next page.
+                </p>
+
+                {/* Action Buttons */}
+                <div style={{ 
+                  display: 'flex', 
+                  gap: '12px' 
+                }}>
+                  <button
+                    onClick={() => setShowIntentModal(false)}
+                    style={{
+                      flex: 1,
+                      padding: '14px',
+                      borderRadius: '12px',
+                      border: '1.5px solid rgba(226, 232, 240, 0.5)',
+                      background: 'white',
+                      color: '#64748b',
+                      fontSize: '15px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      fontFamily: 'inherit'
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleIntentConfirm}
+                    style={{
+                      flex: 1,
+                      padding: '14px',
+                      borderRadius: '12px',
+                      border: 'none',
+                      background: 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)',
+                      color: 'white',
+                      fontSize: '15px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px'
+                    }}
+                  >
+                    Proceed
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Save Button */}
       <AnimatePresence>
