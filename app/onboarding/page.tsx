@@ -1486,8 +1486,8 @@ export default function Onboarding() {
                 <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#1e3a8a', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   Your Vibe <Sparkles size={24} style={{ color: '#f59e0b' }}/>
                 </h2>
-                <p style={{ color: '#64748b', fontSize: '14px' }}>
-                  AI can help you re-write your intro.But can make mistakes.Just drop a rough draft.
+                <p style={{ color: '#64748b', fontSize: '12px' }}>
+                  AI can help you re-write your bio.But can make mistakes.Just drop a rough draft.
                 </p>
               </div>
 
@@ -1516,7 +1516,13 @@ export default function Onboarding() {
                     fontFamily: 'inherit',
                     boxSizing: 'border-box'
                   }}
-                  placeholder="About You, Your Hobbies, Partner Preferences, Family, Likes & Dislikes..."
+                  placeholder={
+                    formData.intent === 'exploring' 
+                      ? "Exploring: Mention your hobbies, interests, and weekend vibes.."
+                      : formData.intent === 'dating'
+                      ? "Dating: Mention your work, values, and what you're looking for.."
+                      : "Marriage: Include your family background, career, and partner expectations.."
+                  }
                 />
                 
                 {/* CONTROLS */}

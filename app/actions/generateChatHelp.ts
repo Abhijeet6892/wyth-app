@@ -1,8 +1,8 @@
 "use server";
 
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import Groq from "groq-sdk";
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY || "");
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 export type ChatMode = 
   | "start_connection"    // Opening a new conversation
@@ -42,7 +42,7 @@ export async function generateChatHelp(
   alternatives: string[];
 }> {
   
-  if (!process.env.GOOGLE_GEMINI_API_KEY) {
+  if (!process.env.GROQ_API_KEY) {
     // Graceful fallback for development
     return {
       primary: "I came across your profile and really appreciated what you shared. Would love to connect.",
@@ -52,8 +52,6 @@ export async function generateChatHelp(
       ]
     };
   }
-
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
   // Build context from profile
   const contextParts: string[] = [];
@@ -243,12 +241,25 @@ Generate 3 variations. Each should be 3-4 lines of dignified closure. Return as:
   }
 
   try {
-    const result = await model.generateContent(systemPrompt);
-    const response = result.response.text().trim();
+    const completion = await groq.chat.completions.create({
+      model: "llama-3.1-70b-versatile",
+      temperature: 0.7,
+      max_tokens: 700,
+      messages: [
+        {
+          role: "system",
+          content:
+            "You write concise, mature WYTH messages. Follow the user's instructions exactly and output only the three numbered messages (1., 2., 3.) with no extra text.",
+        },
+        { role: "user", content: systemPrompt },
+      ],
+    });
+
+    const response = completion.choices[0]?.message?.content?.trim() || "";
 
     // Parse the 3 variations
     const variations = response
-      .split(/\n\d+\.\s+/) // Split on "1. ", "2. ", "3. "
+      .split(/(?:^|\n)\d+\.\s+/) // Split on "1. ", "2. ", "3. " (start or newline)
       .filter(msg => msg.trim().length > 0)
       .map(msg => 
         msg
@@ -270,7 +281,7 @@ Generate 3 variations. Each should be 3-4 lines of dignified closure. Return as:
 
   } catch (error: any) {
     console.error("Chat help error:", error);
-    throw new Error("Failed to generate message. Please try again.");
+    throw new Error(error?.message || "Failed to generate message. Please try again.");
   }
 }
 

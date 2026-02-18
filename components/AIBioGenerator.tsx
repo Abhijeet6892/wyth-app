@@ -42,14 +42,20 @@ export function AIBioGenerator({ onBioGenerated, currentBio }: AIBioGeneratorPro
 
     try {
       // Generate all 3 tones
-      const [grounded, thoughtful, warm] = await Promise.all([
+      const [groundedResult, thoughtfulResult, warmResult] = await Promise.all([
         generateBioAction(keywords, "Grounded"),
         generateBioAction(keywords, "Thoughtful"),
         generateBioAction(keywords, "Warm"),
       ]);
 
-      if (grounded && thoughtful && warm) {
-        setGeneratedBios({ grounded, thoughtful, warm });
+      if (groundedResult.success && groundedResult.bio && 
+          thoughtfulResult.success && thoughtfulResult.bio && 
+          warmResult.success && warmResult.bio) {
+        setGeneratedBios({ 
+          grounded: groundedResult.bio, 
+          thoughtful: thoughtfulResult.bio, 
+          warm: warmResult.bio 
+        });
         setShowResults(true);
       } else {
         setError("Failed to generate bios. Please try again.");

@@ -1,15 +1,25 @@
 "use server";
 
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import Groq from "groq-sdk";
+
+// --- DEBUGGING BLOCK ---
+console.log("--- SERVER SIDE DEBUGGING ---");
+console.log("1. Current Directory:", process.cwd());
+console.log("2. API Key exists?", !!process.env.GROQ_API_KEY);
+console.log("3. API Key length:", process.env.GROQ_API_KEY?.length);
+console.log("-----------------------------");
+// -----------------------
 
 /**
- * WYTH BIO ARCHITECT (Gemini 1.5 Flash)
- * * Purpose: Transforms raw user details into a structured, Intent-Aware profile.
+ * WYTH BIO ARCHITECT (Groq - Llama 3.1)
+ * Purpose: Transforms raw user details into a structured, Intent-Aware profile.
  * Logic: Adapts depth and tone based on 'Exploring', 'Dating', or 'Marriage'.
+ *
+ * API key: Set GROQ_API_KEY in .env.local (root). Get free API key at https://console.groq.com/
+ * Free tier: 14,400 requests/day - No credit card required!
  */
-
-const apiKey = process.env.GOOGLE_GEMINI_API_KEY;
-const genAI = new GoogleGenerativeAI(apiKey!);
+const apiKey = process.env.GROQ_API_KEY;
+const groq = new Groq({ apiKey });
 
 // --- THE BRAIN: SYSTEM INSTRUCTIONS & FEW-SHOT EXAMPLES ---
 const SYSTEM_INSTRUCTION = `
@@ -69,30 +79,47 @@ I am practicing medicine in Mumbai and have worked hard to build a stable career
 
 export async function generateBioAction(userDetails: string, intent: string) {
   try {
-    if (!apiKey) throw new Error("Google API Key is missing");
+    if (!apiKey) throw new Error("Groq API Key is missing. Get a free key at https://console.groq.com/");
 
-    // 1. Initialize Model with the "Gem" Instructions
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
-      systemInstruction: SYSTEM_INSTRUCTION
+    // Generate using Groq (Llama 3.1 70B - fast and free!)
+    const completion = await groq.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content: SYSTEM_INSTRUCTION
+        },
+        {
+          role: "user",
+          content: `User Details: ${userDetails}\nIntent: ${intent}`
+        }
+      ],
+      model: "llama-3.3-70b-versatile", // Fast, high-quality model on Groq's free tier
+      temperature: 0.7,
+      max_tokens: 1000
     });
 
-    // 2. Construct the Prompt
-    const prompt = `
-      User Details: ${userDetails}
-      Intent: ${intent}
-    `;
+    let text = completion.choices[0]?.message?.content?.trim() || "";
 
-    // 3. Generate
-    const result = await model.generateContent(prompt);
-    let text = result.response.text().trim();
-
-    // 4. Clean up any markdown artifacts if necessary
-    // (Gemini is usually good at following the header structure, so minimal cleanup needed)
+    // Clean up any markdown artifacts if necessary
+    // (Llama 3.1 is good at following the header structure, so minimal cleanup needed)
     return { success: true, bio: text };
 
   } catch (error: any) {
     console.error("Bio generation error:", error);
-    return { success: false, error: "Failed to generate bio" };
+    
+    // Check for quota/rate limit errors
+    const errorMessage = error.message || error.toString() || "";
+    if (errorMessage.includes("429") || 
+        errorMessage.includes("quota") || 
+        errorMessage.includes("Quota exceeded") ||
+        errorMessage.includes("Too Many Requests") ||
+        errorMessage.includes("rate limit")) {
+      return { 
+        success: false, 
+        error: "API rate limit reached. Groq free tier allows 14,400 requests/day. Please wait a moment and try again, or check limits at https://console.groq.com/" 
+      };
+    }
+    
+    return { success: false, error: error.message || "Unknown AI Error" };
   }
 }
