@@ -11,13 +11,16 @@ console.log("-----------------------------");
 // -----------------------
 
 /**
- * WYTH BIO ARCHITECT (Groq - Llama 3.1)
+ * WYTH BIO ARCHITECT (Groq - Llama 3.3)
  * Purpose: Transforms raw user details into a structured, Intent-Aware profile.
  * Logic: Adapts depth and tone based on 'Exploring', 'Dating', or 'Marriage'.
  *
  * API key: Set GROQ_API_KEY in .env.local (root). Get free API key at https://console.groq.com/
  * Free tier: 14,400 requests/day - No credit card required!
  */
+
+export type BioTone = "Grounded" | "Thoughtful" | "Warm";
+
 const apiKey = process.env.GROQ_API_KEY;
 const groq = new Groq({ apiKey });
 
@@ -37,16 +40,16 @@ INTENT LOGIC (How to write based on User Intent):
 - IF Intent = 'ready_marriage': Focus on "life partner," "long-term compatibility," and "building a future." Provide FULL family details.
 
 REQUIRED OUTPUT STRUCTURE:
-## About Me
+About Me
 (2-3 sentences. Focus on personality and hobbies. Keep it grounded and friendly.)
 
-## My Family
+My Family
 (Logic: If 'exploring', write "Details not relevant for this mode." If 'dating', write 1 sentence. If 'ready_marriage', summarize full background.)
 
-## Partner Preference
+Partner Preference
 (Logic: If 'exploring', focus on activities. If 'dating', focus on connection. If 'ready_marriage', focus on long-term compatibility.)
 
-## Location, Education & Career
+Location, Education & Career
 (State city and job. If specific salary is mentioned, generalize it if privacy/Ghost Mode is implied.)
 
 ---
@@ -55,33 +58,33 @@ EXAMPLES OF DESIRED TONE:
 [SCENARIO: EXPLORING]
 Input: "Rahul. Engineer. Love football. Just looking."
 Output:
-## About Me
+About Me
 I am a software engineer who loves to unwind with a good game of football on weekends. I enjoy keeping things light and stress-free.
-## My Family
+My Family
 Details not relevant for this mode.
-## Partner Preference
+Partner Preference
 I am looking to meet new people and see where things go.
-## Location, Education & Career
+Location, Education & Career
 I currently live in Bangalore and work in the tech industry.
 
 [SCENARIO: MARRIAGE]
 Input: "Priya. Doctor. Conservative family. Want ambitious husband."
 Output:
-## About Me
+About Me
 I am a doctor by profession, but at heart, I am someone who values balance. I prioritize time for the people I care about.
-## My Family
+My Family
 I come from a conservative family that has taught me the value of tradition, though I balance that with a modern outlook.
-## Partner Preference
+Partner Preference
 I am looking for a life partner who is ambitious and driven. I value character and mutual respect above all else.
-## Location, Education & Career
+Location, Education & Career
 I am practicing medicine in Mumbai and have worked hard to build a stable career.
 `;
 
-export async function generateBioAction(userDetails: string, intent: string) {
+export async function generateBioAction(userDetails: string, toneOrIntent: BioTone | string) {
   try {
     if (!apiKey) throw new Error("Groq API Key is missing. Get a free key at https://console.groq.com/");
 
-    // Generate using Groq (Llama 3.1 70B - fast and free!)
+    // Generate using Groq (Llama 3.3 70B - fast and free!)
     const completion = await groq.chat.completions.create({
       messages: [
         {
@@ -90,7 +93,7 @@ export async function generateBioAction(userDetails: string, intent: string) {
         },
         {
           role: "user",
-          content: `User Details: ${userDetails}\nIntent: ${intent}`
+          content: `User Details: ${userDetails}\nIntent: ${toneOrIntent}`
         }
       ],
       model: "llama-3.3-70b-versatile", // Fast, high-quality model on Groq's free tier

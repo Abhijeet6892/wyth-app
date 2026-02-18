@@ -37,9 +37,7 @@ import {
   X,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { generateBioAction, type BioTone } from "@/app/actions/generateBio";
-
-// Constants
+import { generateBioAction, type BioTone } from "@/app/actions/generateBio";// Constants
 const INCOME_BRACKETS = [
   "Student / < 5L", "5L - 10L", "10L - 15L", "15L - 20L", 
   "20L - 30L", "30L - 50L", "50L - 1Cr", "1Cr+"
@@ -363,11 +361,16 @@ export default function EditProfileContent() {
       alert("Please write a short rough draft first, then let AI polish it!");
       return;
     }
-
+  
     setGeneratingBio(true);
     try {
-      const polished = await generateBioAction(formData.bio, selectedTone);
-      if (polished) setFormData(prev => ({ ...prev, bio: polished }));
+      // ✅ ONLY CHANGE: Pass intent instead of selectedTone
+      const result = await generateBioAction(formData.bio, formData.intent);
+      
+      // ✅ ONLY CHANGE: Handle the object return
+      if (result?.success && result.bio) {
+        setFormData(prev => ({ ...prev, bio: result.bio }));
+      }
     } catch (error) {
       alert("AI is taking a break. Please try again.");
     }
@@ -799,7 +802,7 @@ export default function EditProfileContent() {
                       onClick={() => handleIntentChange(option.value)}
                       style={{
                         flex: 1,
-                        padding: '12px',
+                        padding: '8px',
                         borderRadius: '12px',
                         fontSize: '14px',
                         fontWeight: '600',
@@ -840,7 +843,7 @@ export default function EditProfileContent() {
                   icon={<User size={16} style={{ color: '#1e3a8a' }} />}
                   value={formData.full_name}
                   onChange={(e) => setFormData({...formData, full_name: e.target.value})}
-                  placeholder="e.g. Aditi Rao"
+                  placeholder="e.g. Abhijeet Bhattacharya"
                 />
 
                 <div style={{ marginTop: '16px' }}>
@@ -851,7 +854,7 @@ export default function EditProfileContent() {
                     textTransform: 'uppercase',
                     letterSpacing: '0.5px',
                     marginBottom: '8px',
-                    display: 'block'
+                    display: 'block',
                   }}>Gender *</label>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     {['Male', 'Female', 'Other'].map(g => (
@@ -860,8 +863,8 @@ export default function EditProfileContent() {
                         onClick={() => setFormData({...formData, gender: g})}
                         style={{
                           flex: 1,
-                          padding: '12px',
-                          borderRadius: '12px',
+                          padding: '10px',
+                          borderRadius: '10px',
                           fontSize: '14px',
                           fontWeight: '600',
                           border: formData.gender === g ? '2px solid #1e3a8a' : '2px solid rgba(30, 58, 138, 0.2)',
@@ -922,7 +925,7 @@ export default function EditProfileContent() {
                       }}
                       style={{
                         width: '100%',
-                        padding: '14px 16px 14px 42px',
+                        padding: '14px 2px',
                         borderRadius: '12px',
                         border: '1.5px solid rgba(30, 58, 138, 0.2)',
                         backgroundColor: 'white',
@@ -930,14 +933,14 @@ export default function EditProfileContent() {
                         outline: 'none',
                         fontFamily: 'inherit'
                       }}
-                      placeholder="Search City..."
+                      placeholder=" "
                     />
                     {showCityDropdown && citySearch.length > 0 && (
                       <div style={{
                         position: 'absolute',
                         top: '100%',
-                        left: 0,
-                        right: 0,
+                        left: 4,
+                        right: 4,
                         marginTop: '4px',
                         background: 'white',
                         borderRadius: '12px',
@@ -952,7 +955,7 @@ export default function EditProfileContent() {
                             key={city} 
                             onClick={() => handleCitySelect(city)}
                             style={{
-                              padding: '12px 16px',
+                              padding: '12px 0px',
                               cursor: 'pointer',
                               fontSize: '14px',
                               color: '#1e3a8a',
@@ -1100,7 +1103,7 @@ export default function EditProfileContent() {
                       }}
                       style={{
                         width: '100%',
-                        padding: '14px 16px 14px 42px',
+                        padding: '14px 42px 14px 42px',
                         borderRadius: '12px',
                         border: '1.5px solid rgba(30, 58, 138, 0.2)',
                         backgroundColor: 'white',
@@ -1315,7 +1318,7 @@ export default function EditProfileContent() {
                     style={{
                       width: '100%',
                       height: '100px',
-                      padding: '14px 16px',
+                      padding: '14px 0px',
                       borderRadius: '12px',
                       border: '1.5px solid rgba(30, 58, 138, 0.2)',
                       backgroundColor: 'white',
@@ -1324,7 +1327,7 @@ export default function EditProfileContent() {
                       fontFamily: 'inherit',
                       outline: 'none'
                     }}
-                    placeholder="e.g., 1 elder brother, 2 sisters..."
+                    placeholder="    E.g. I have a younger brother & a elder sister who is Happily Married"
                   />
                 </div>
               </GlassCard>
@@ -1874,9 +1877,9 @@ export default function EditProfileContent() {
           initial={{ y: 100 }}
           animate={{ y: 0 }}
           style={{
-            position: 'fixed',
-            bottom: '24px',
-            left: '20px',
+            position: 'relative',
+            bottom: '10px',
+            left: '0px',
             right: '20px',
             zIndex: 50,
             maxWidth: '640px',
