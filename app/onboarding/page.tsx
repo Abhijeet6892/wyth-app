@@ -15,7 +15,10 @@ import {
 } from "lucide-react";
 
 // CONNECT THE AI BRAIN
-import { generateBioAction, type BioTone } from "@/app/actions/generateBio";
+import { generateBioAction } from "@/app/actions/generateBio";
+
+// Define BioTone locally so your UI buttons still work
+type BioTone = "Grounded" | "Thoughtful" | "Warm";
 
 // --- CONSTANTS ---
 const INCOME_BRACKETS = [
@@ -31,7 +34,7 @@ const COUNTRY_CODES = [
 ];
 
 const CITIES = [
-  "Mumbai","Delhi NCR","Bangalore","Hyderabad","Chennai","Kolkata","Pune",
+  "Mumbai","Delhi NCR", "Gorakhpur","Bangalore","Hyderabad","Chennai","Kolkata","Pune",
   "Gurugram","Noida","Ahmedabad","Jaipur","Chandigarh","Lucknow","Indore",
   "Patna","Bhopal","Kochi","Visakhapatnam","Surat","Vadodara","Ludhiana",
   "Agra","Nashik","Nagpur","Coimbatore","Thiruvananthapuram","Mysuru",
@@ -412,15 +415,31 @@ export default function Onboarding() {
   };
 
   const handleAiBio = async () => {
+    // 1. Validation: Ensure there is some text to work with
     if (!formData.bio || formData.bio.length < 5) {
-      alert("Please re-write & enhace the bio with upto 100 words.");
+      alert("Please write a rough draft first (at least 5 characters).");
       return;
     }
     
+    // 2. Validation: Ensure Intent is selected (Critical for new Gem)
+    if (!formData.intent) {
+        alert("Please select an Intent (Exploring, Dating, or Marriage) first.");
+        return;
+    }
+
     setGeneratingBio(true);
     try {
-      const polished = await generateBioAction(formData.bio, bioTone);
-      if (polished) setFormData(prev => ({ ...prev, bio: polished }));
+      // 3. Call the NEW Action
+      // We pass 'formData.intent' instead of 'bioTone' because the new Gem is Intent-Based
+      const result = await generateBioAction(formData.bio, formData.intent);
+      
+      // 4. Handle the Object Response ({ success: true, bio: "..." })
+      if (result.success && result.bio) {
+        setFormData(prev => ({ ...prev, bio: result.bio }));
+      } else {
+        throw new Error(result.error || "Failed to generate bio");
+      }
+      
     } catch (e: any) {
       console.error("AI Error:", e);
       alert(e.message || "AI service error. Try again or skip this step.");
@@ -636,13 +655,13 @@ export default function Onboarding() {
 
           {/* Tagline */}
           <h2 style={{
-            fontSize: '24px',
+            fontSize: '18px',
             fontWeight: '600',
             color: '#1e3a8a',
-            marginBottom: '12px',
+            marginBottom: '10px',
             lineHeight: '1.3'
           }}>
-            Find Your Life Partner,<br />Your Way
+            Follow for VIBE | Connect for LIFE
           </h2>
 
           <p style={{
@@ -651,33 +670,48 @@ export default function Onboarding() {
             marginBottom: '40px',
             lineHeight: '1.6'
           }}>
-            Not arranged. Not casual. Just real connections with serious people.
+            Bridging the GAP between 'Casual Dating' & 'Traditional Matrimony'.
           </p>
 
-          {/* Benefits */}
-          <div style={{ marginBottom: '40px' }}>
+          {/* 2x2 Grid Layout - Saves Vertical Space */}
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: '1fr 1fr', 
+            gap: '12px', 
+            marginBottom: '32px',
+            marginTop: '24px'
+          }}>
             {[
-              { icon: '🎯', text: '5 intentional connection slots' },
-              { icon: '🤝', text: 'Trust-based community with vouches' },
-              { icon: '💬', text: 'AI helps you communicate better' },
-              { icon: '🔒', text: 'Marriage-minded, not desperate' }
+              { icon: '🎯', title: '5 Meaningful Slots', sub: 'Quality > Quantity' },
+              { icon: '🤝', title: 'Community Vouched', sub: 'Real trust' },
+              { icon: '✨', title: 'AI Storyteller', sub: 'Perfect bios' },
+              { icon: '🔒', title: 'Designed to Last', sub: 'Serious intent' }
             ].map((benefit, idx) => (
               <div key={idx} style={{
+                background: 'rgba(255, 255, 255, 0.6)', // Glassy background
+                backdropFilter: 'blur(10px)',
+                borderRadius: '20px', // Softer corners
+                padding: '16px',
+                textAlign: 'left',
+                border: '1px solid rgba(255, 255, 255, 0.8)', // Premium border
+                boxShadow: '0 4px 10px rgba(30, 58, 138, 0.03)', // Subtle lift
                 display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                padding: '12px',
-                marginBottom: '8px',
-                textAlign: 'left' as const
+                flexDirection: 'column',
+                justifyContent: 'center'
               }}>
-                <span style={{ fontSize: '24px' }}>{benefit.icon}</span>
-                <span style={{
-                  fontSize: '14px',
-                  color: '#475569',
-                  fontWeight: '500'
+                <div style={{ fontSize: '24px', marginBottom: '8px' }}>{benefit.icon}</div>
+                <div style={{ 
+                  fontSize: '14px', 
+                  fontWeight: '700', 
+                  color: '#1e3a8a',
+                  lineHeight: '1.2',
+                  marginBottom: '4px'
                 }}>
-                  {benefit.text}
-                </span>
+                  {benefit.title}
+                </div>
+                <div style={{ fontSize: '12px', color: '#64748b' }}>
+                  {benefit.sub}
+                </div>
               </div>
             ))}
           </div>

@@ -2,172 +2,97 @@
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-export type BioTone = "Grounded" | "Thoughtful" | "Warm";
-
 /**
- * WYTH BIO GENERATOR
- * 
- * Philosophy:
- * - High-intent, not swipe culture
- * - Emotionally mature, not cringe
- * - Dignified, not desperate
- * - Personal, not template
+ * WYTH BIO ARCHITECT (Gemini 1.5 Flash)
+ * * Purpose: Transforms raw user details into a structured, Intent-Aware profile.
+ * Logic: Adapts depth and tone based on 'Exploring', 'Dating', or 'Marriage'.
  */
 
-// Parse keywords into structured data
-function parseKeywords(input: string): {
-  profession?: string;
-  city?: string;
-  hobbies: string[];
-  family?: string;
-  intent?: string;
-} {
-  const lower = input.toLowerCase();
-  
-  // Extract profession (common patterns)
-  const professions = ['engineer', 'doctor', 'consultant', 'designer', 'architect', 'lawyer', 'teacher', 'analyst', 'manager', 'developer', 'entrepreneur'];
-  const profession = professions.find(p => lower.includes(p));
-  
-  // Extract city (Indian cities)
-  const cities = ['mumbai', 'delhi', 'bangalore', 'bengaluru', 'chennai', 'hyderabad', 'pune', 'kolkata', 'ahmedabad', 'jaipur', 'surat', 'lucknow', 'kochi', 'goa'];
-  const city = cities.find(c => lower.includes(c));
-  
-  // Extract hobbies
-  const hobbyPatterns = ['hiking', 'travel', 'reading', 'music', 'photography', 'cooking', 'fitness', 'yoga', 'art', 'cinema', 'theatre', 'sports', 'cricket', 'chess'];
-  const hobbies = hobbyPatterns.filter(h => lower.includes(h));
-  
-  // Detect family mention
-  const hasFamily = lower.includes('family') || lower.includes('parents') || lower.includes('siblings');
-  
-  // Detect intent
-  const hasMarriage = lower.includes('marriage') || lower.includes('settle') || lower.includes('serious') || lower.includes('long-term') || lower.includes('committed');
-  
-  return {
-    profession: profession ? profession.charAt(0).toUpperCase() + profession.slice(1) : undefined,
-    city: city ? city.charAt(0).toUpperCase() + city.slice(1) : undefined,
-    hobbies: hobbies.map(h => h.charAt(0).toUpperCase() + h.slice(1)),
-    family: hasFamily ? 'family-oriented' : undefined,
-    intent: hasMarriage ? 'ready for marriage' : 'looking for something meaningful'
-  };
-}
+const apiKey = process.env.GOOGLE_GEMINI_API_KEY;
+const genAI = new GoogleGenerativeAI(apiKey!);
 
-export async function generateBioAction(rawInput: string, tone: BioTone = "Grounded"): Promise<string> {
-  try {
-    const apiKey = process.env.GOOGLE_GEMINI_API_KEY;
-    if (!apiKey) throw new Error("AI service not configured");
-
-    // Parse keywords into structure
-    const parsed = parseKeywords(rawInput);
-    
-    // If parsing failed completely, work with raw input
-    const hasStructure = parsed.profession || parsed.city || parsed.hobbies.length > 0;
-
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-    // WYTH-SPECIFIC PREMIUM PROMPT
-    const prompt = `You are writing a profile bio for WYTH — a premium, high-intent social platform where people look for genuine, long-term connections leading to marriage.
-
-WYTH VOICE PRINCIPLES:
-• Emotionally mature, not playful
-• Calm confidence, not desperate
-• Personal depth, not generic
-• Dignified intent, not cringe
-• Self-aware, not boastful
-
-${hasStructure ? `USER PROFILE DATA:
-${parsed.profession ? `Profession: ${parsed.profession}` : ''}
-${parsed.city ? `Location: ${parsed.city}` : ''}
-${parsed.hobbies.length > 0 ? `Interests: ${parsed.hobbies.join(', ')}` : ''}
-${parsed.family ? `Values family` : ''}
-${parsed.intent ? `Intent: ${parsed.intent}` : ''}` : `RAW INPUT: "${rawInput}"`}
-
-TONE: ${tone === "Grounded" ? "Calm, steady, grounded. Confident but not showy." : tone === "Thoughtful" ? "Reflective, introspective, thoughtful. Shows depth." : "Warm, kind, genuine. Shows emotional availability."}
-
-STRUCTURE (3 short paragraphs):
-Paragraph 1: Career + Location
-- Introduce profession and city naturally
-- Connect work to values/approach to life
-- Example: "I'm an engineer based in Mumbai, someone who finds balance between building things professionally and building meaningful relationships personally."
-
-Paragraph 2: Lifestyle + Hobbies + Family  
-- Mention how you spend time
-- Include hobbies naturally (don't list)
-- Reference family warmly but not dependently
-- Example: "Weekends usually mean hiking trails, planning the next travel escape, or spending time with my family — my parents and my younger brother keep life grounded and joyful."
-
-Paragraph 3: Intent + Outlook
-- State relationship readiness clearly but not desperately
-- Example: "At this stage, I'm genuinely ready for marriage and looking for something steady, respectful, and long-term."
+// --- THE BRAIN: SYSTEM INSTRUCTIONS & FEW-SHOT EXAMPLES ---
+const SYSTEM_INSTRUCTION = `
+ROLE:
+You are the WYTH Profile Architect. Rewrite the User Details into a polished, natural introduction in the FIRST PERSON ("I").
 
 CRITICAL RULES:
-✅ Write in FIRST PERSON ("I'm" not "He is")
-✅ Keep total under 450 characters
-✅ Use em dashes (—) not hyphens for pauses
-✅ Natural flow, not bullet points
-✅ Specific details, not generic traits
-✅ Show, don't tell personality
+1. VOICE: ALWAYS use "I," "my," and "me." Never use the user's name or "he/she."
+2. NO FLOWERY LANGUAGE: Do NOT use words like "tapestry," "realm," "piqued," "intersection," "poised," "endeavor." Write in simple, confident, human English.
+3. STRICT FORMATTING: You MUST use the 4 specific headers below.
 
-❌ NEVER use these phrases:
-- "Fun-loving" / "Adventure seeker"
-- "Looking for my better half"
-- "Family is everything"
-- "Traditional values"
-- "Work hard, play hard"
-- "Love to laugh"
-- "Easy-going"
-- "Go with the flow"
-- Any emojis
-- Any exclamation marks in excess
+INTENT LOGIC (How to write based on User Intent):
+- IF Intent = 'exploring': Keep it light, fun, hobby-focused. Omit family details unless asked.
+- IF Intent = 'dating': Focus on "chemistry," "meaningful connection," and "shared values." Keep family brief (1 sentence).
+- IF Intent = 'ready_marriage': Focus on "life partner," "long-term compatibility," and "building a future." Provide FULL family details.
 
-❌ AVOID:
-- Matrimony website resume tone
-- LinkedIn corporate speak
-- Over-romantic poetry
-- Generic adjectives (amazing, awesome, incredible)
-- Clichés about travel, food, music
+REQUIRED OUTPUT STRUCTURE:
+## About Me
+(2-3 sentences. Focus on personality and hobbies. Keep it grounded and friendly.)
 
-OUTPUT:
-Write the bio as one flowing text (no labels, no headers, no quotes). Just the three paragraphs separated by line breaks.`;
+## My Family
+(Logic: If 'exploring', write "Details not relevant for this mode." If 'dating', write 1 sentence. If 'ready_marriage', summarize full background.)
 
+## Partner Preference
+(Logic: If 'exploring', focus on activities. If 'dating', focus on connection. If 'ready_marriage', focus on long-term compatibility.)
+
+## Location, Education & Career
+(State city and job. If specific salary is mentioned, generalize it if privacy/Ghost Mode is implied.)
+
+---
+EXAMPLES OF DESIRED TONE:
+
+[SCENARIO: EXPLORING]
+Input: "Rahul. Engineer. Love football. Just looking."
+Output:
+## About Me
+I am a software engineer who loves to unwind with a good game of football on weekends. I enjoy keeping things light and stress-free.
+## My Family
+Details not relevant for this mode.
+## Partner Preference
+I am looking to meet new people and see where things go.
+## Location, Education & Career
+I currently live in Bangalore and work in the tech industry.
+
+[SCENARIO: MARRIAGE]
+Input: "Priya. Doctor. Conservative family. Want ambitious husband."
+Output:
+## About Me
+I am a doctor by profession, but at heart, I am someone who values balance. I prioritize time for the people I care about.
+## My Family
+I come from a conservative family that has taught me the value of tradition, though I balance that with a modern outlook.
+## Partner Preference
+I am looking for a life partner who is ambitious and driven. I value character and mutual respect above all else.
+## Location, Education & Career
+I am practicing medicine in Mumbai and have worked hard to build a stable career.
+`;
+
+export async function generateBioAction(userDetails: string, intent: string) {
+  try {
+    if (!apiKey) throw new Error("Google API Key is missing");
+
+    // 1. Initialize Model with the "Gem" Instructions
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-1.5-flash",
+      systemInstruction: SYSTEM_INSTRUCTION
+    });
+
+    // 2. Construct the Prompt
+    const prompt = `
+      User Details: ${userDetails}
+      Intent: ${intent}
+    `;
+
+    // 3. Generate
     const result = await model.generateContent(prompt);
     let text = result.response.text().trim();
-    
-    // Clean up any AI artifacts
-    text = text
-      .replace(/^["'`]+|["'`]+$/g, '') // Remove quotes
-      .replace(/^Bio:?\s*/i, '') // Remove "Bio:" prefix
-      .replace(/^Here's.*?:\s*/i, '') // Remove "Here's your bio:"
-      .replace(/\*\*/g, '') // Remove markdown bold
-      .replace(/\n{3,}/g, '\n\n') // Max 2 line breaks
-      .trim();
-    
-    return text;
-    
+
+    // 4. Clean up any markdown artifacts if necessary
+    // (Gemini is usually good at following the header structure, so minimal cleanup needed)
+    return { success: true, bio: text };
+
   } catch (error: any) {
     console.error("Bio generation error:", error);
-    throw new Error(error.message || "Failed to generate bio");
-  }
-}
-
-/**
- * Generate all 3 tone variations
- */
-export async function generateBioOptions(rawInput: string): Promise<{
-  grounded: string;
-  thoughtful: string;
-  warm: string;
-} | null> {
-  try {
-    const [grounded, thoughtful, warm] = await Promise.all([
-      generateBioAction(rawInput, "Grounded"),
-      generateBioAction(rawInput, "Thoughtful"),
-      generateBioAction(rawInput, "Warm"),
-    ]);
-
-    return { grounded, thoughtful, warm };
-  } catch (error) {
-    console.error("Bio options error:", error);
-    return null;
+    return { success: false, error: "Failed to generate bio" };
   }
 }
