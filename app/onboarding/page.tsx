@@ -10,7 +10,8 @@ import {
   ChevronDown, Lock, Home, Users, Compass,
   Church, Languages, Utensils, Wine, Cigarette,
   Ruler, Navigation, ArrowLeft, CheckCircle2, XCircle, Shield,
-  BellRing
+  BellRing,
+  BellRingIcon
 } from "lucide-react";
 
 // CONNECT THE AI BRAIN
@@ -987,7 +988,7 @@ export default function Onboarding() {
                     justifyContent: 'center',
                     marginBottom: '12px'
                   }}>
-                    <BellRing size={24} />
+                    <BellRingIcon size={24} />
                   </div>
                   <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#1e3a8a', marginBottom: '4px' }}>
                     Ready for Marriage
