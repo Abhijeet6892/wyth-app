@@ -9,7 +9,8 @@ import {
   Sparkles, Camera, Loader2, IndianRupee, 
   ChevronDown, Lock, Home, Users, Compass,
   Church, Languages, Utensils, Wine, Cigarette,
-  Ruler, Navigation, ArrowLeft, CheckCircle2, XCircle, Shield
+  Ruler, Navigation, ArrowLeft, CheckCircle2, XCircle, Shield,
+  BellRing
 } from "lucide-react";
 
 // CONNECT THE AI BRAIN
@@ -986,7 +987,7 @@ export default function Onboarding() {
                     justifyContent: 'center',
                     marginBottom: '12px'
                   }}>
-                    <Sparkles size={24} />
+                    <BellRing size={24} />
                   </div>
                   <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#1e3a8a', marginBottom: '4px' }}>
                     Ready for Marriage
@@ -1451,7 +1452,7 @@ export default function Onboarding() {
                   Your Vibe <Sparkles size={24} style={{ color: '#f59e0b' }}/>
                 </h2>
                 <p style={{ color: '#64748b', fontSize: '14px' }}>
-                  Let AI write your intro. Just drop a rough draft.
+                  AI can help you re-write your intro.But can make mistakes.Just drop a rough draft.
                 </p>
               </div>
 
@@ -1480,7 +1481,7 @@ export default function Onboarding() {
                     fontFamily: 'inherit',
                     boxSizing: 'border-box'
                   }}
-                  placeholder="I like coffee, hiking on weekends, and reading sci-fi books..."
+                  placeholder="About You, Your Hobbies, Partner Preferences, Family, Likes & Dislikes..."
                 />
                 
                 {/* CONTROLS */}
@@ -1611,7 +1612,7 @@ export default function Onboarding() {
                 marginBottom: '24px',
                 lineHeight: '1.6'
               }}>
-                Optional: Link your LinkedIn & Instagram for verification.
+                Optional: These links are asked for verification & affects your trust score on Wyth .
               </p>
 
               {/* Privacy Disclaimer */}
@@ -1681,7 +1682,7 @@ export default function Onboarding() {
               
               <input
                 type="text"
-                placeholder="yourname (not full URL)"
+                placeholder="https://www.linkedin.com/in/your-handle (Refer My Profile)"
                 value={formData.linkedin_handle}
                 onChange={(e) => setFormData({...formData, linkedin_handle: e.target.value})}
                 style={{
@@ -1689,7 +1690,7 @@ export default function Onboarding() {
                   background: 'rgba(248, 250, 252, 0.8)',
                   border: '1.5px solid rgba(226, 232, 240, 0.5)',
                   borderRadius: '16px',
-                  padding: '14px 20px',
+                  padding: '14px 16px',
                   fontSize: '15px',
                   color: '#1e3a8a',
                   outline: 'none',
@@ -1736,7 +1737,7 @@ export default function Onboarding() {
                   background: 'rgba(248, 250, 252, 0.8)',
                   border: '1.5px solid rgba(226, 232, 240, 0.5)',
                   borderRadius: '16px',
-                  padding: '14px 20px',
+                  padding: '14px 16px',
                   fontSize: '15px',
                   color: '#1e3a8a',
                   outline: 'none',
