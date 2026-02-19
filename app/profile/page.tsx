@@ -583,81 +583,79 @@ export default function MyProfilePage() {
           </div>
         </div>
 
-        {/* Income Card (Blurred) */}
-        <div style={{
-          background: 'rgba(241, 245, 249, 0.75)',
-          backdropFilter: 'blur(20px)',
-          border: '1px solid rgba(226, 232, 240, 0.6)',
-          borderRadius: '20px',
-          padding: '20px',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'space-between',
-          minHeight: '144px',
-          position: 'relative',
-          overflow: 'hidden'
-        }}>
-          {/* Blur Overlay */}
+        {/* Income Card - Clickable, no blur for own profile */}
+        <Link href="/settings/edit-profile?section=career" style={{ textDecoration: 'none' }}>
           <div style={{
-            position: 'absolute',
-            inset: 0,
-            backdropFilter: 'blur(4px)',
-            background: 'rgba(255, 255, 255, 0.4)',
-            zIndex: 10,
+            background: 'rgba(255, 255, 255, 0.75)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            border: '1px solid rgba(255, 255, 255, 0.5)',
+            borderRadius: '20px',
+            padding: '20px',
+            boxShadow: '0 4px 16px rgba(31, 41, 55, 0.08)',
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            minHeight: '144px',
+            cursor: 'pointer',
+            transition: 'all 0.2s'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.2)';
+            e.currentTarget.style.transform = 'translateY(-2px)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.5)';
+            e.currentTarget.style.transform = 'translateY(0)';
+          }}
+          >
             <div style={{
-              background: 'rgba(255, 255, 255, 0.8)',
-              padding: '8px 16px',
-              borderRadius: '16px',
+              width: '40px',
+              height: '40px',
+              borderRadius: '12px',
+              background: 'rgba(99, 102, 241, 0.1)',
+              color: '#6366f1',
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
-              border: '1px solid rgba(226, 232, 240, 0.5)'
+              justifyContent: 'center',
+              marginBottom: '8px'
             }}>
-              <Lock size={12} style={{ color: '#94a3b8' }} />
-              <span style={{
+              <IndianRupee size={20} />
+            </div>
+            <div>
+              <p style={{
                 fontSize: '10px',
                 fontWeight: '700',
-                color: '#64748b',
-                textTransform: 'uppercase'
+                color: '#94a3b8',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                marginBottom: '4px'
               }}>
-                Private
-              </span>
+                Income
+              </p>
+              <p style={{
+                fontSize: '14px',
+                fontWeight: '700',
+                color: '#1e3a8a',
+                lineHeight: '1.3',
+                marginBottom: '4px'
+              }}>
+                {profile?.income_tier || "Add Income"}
+              </p>
+              <p style={{
+                fontSize: '12px',
+                color: '#64748b',
+                fontWeight: '500',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}>
+                <Lock size={10} /> Hidden from others
+              </p>
             </div>
           </div>
-          
-          {/* Underlying Content */}
-          <div style={{
-            width: '40px',
-            height: '40px',
-            borderRadius: '12px',
-            background: '#cbd5e1',
-            marginBottom: '8px'
-          }} />
-          <div>
-            <p style={{
-              fontSize: '10px',
-              fontWeight: '700',
-              color: '#cbd5e1',
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px',
-              marginBottom: '4px'
-            }}>
-              Income
-            </p>
-            <p style={{
-              fontSize: '14px',
-              fontWeight: '700',
-              color: '#cbd5e1'
-            }}>
-              ₹{profile?.income_tier || "20L - 30L"}
-            </p>
-          </div>
-        </div>
+        </Link>
+
       </motion.div>
 
       {/* Private Signals Card */}
@@ -726,133 +724,88 @@ export default function MyProfilePage() {
         </div>
       </motion.div>
 
-      {/* Social Proof Card */}
+      {/* Social Proof Card - Compact */}
       <motion.div variants={item} style={{ paddingLeft: '16px', paddingRight: '16px', marginBottom: '32px', position: 'relative', zIndex: 10 }}>
-        <div style={{
-          background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)',
-          borderRadius: '24px',
-          padding: '24px',
-          color: 'white',
-          position: 'relative',
-          overflow: 'hidden',
-          boxShadow: '0 8px 24px rgba(30, 41, 59, 0.2)'
-        }}>
-          {/* Background Texture */}
+        {profile?.vouches_count === 0 ? (
           <div style={{
-            position: 'absolute',
-            top: 0,
-            right: 0,
-            width: '128px',
-            height: '128px',
-            background: 'rgba(255, 255, 255, 0.05)',
-            borderRadius: '50%',
-            filter: 'blur(48px)',
-            transform: 'translate(40px, -40px)'
-          }} />
-          
-          <div style={{
-            position: 'relative',
-            zIndex: 10,
+            background: 'rgba(255, 255, 255, 0.75)',
+            backdropFilter: 'blur(20px)',
+            border: '1px solid rgba(226, 232, 240, 0.6)',
+            borderRadius: '20px',
+            padding: '16px 20px',
             display: 'flex',
+            alignItems: 'center',
+            gap: '16px'
+          }}>
+            <div style={{
+              width: '44px',
+              height: '44px',
+              borderRadius: '12px',
+              background: '#fef3c7',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              fontSize: '20px'
+            }}>🎯</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: '14px', fontWeight: '700', color: '#92400e', marginBottom: '2px' }}>
+                Build Your Trust Score
+              </div>
+              <div style={{ fontSize: '12px', color: '#78350f' }}>
+                Get 5 vouches to unlock Gold perks
+              </div>
+            </div>
+            <button style={{
+              background: '#d97706',
+              color: 'white',
+              padding: '8px 14px',
+              borderRadius: '10px',
+              border: 'none',
+              fontSize: '12px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              flexShrink: 0,
+              fontFamily: 'inherit'
+            }}>
+              Learn →
+            </button>
+          </div>
+        ) : (
+          <div style={{
+            background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)',
+            borderRadius: '20px',
+            padding: '20px',
+            color: 'white',
+            display: 'flex',
+            alignItems: 'center',
             justifyContent: 'space-between',
-            alignItems: 'flex-end'
+            boxShadow: '0 8px 24px rgba(30, 41, 59, 0.2)'
           }}>
             <div>
-              <div style={{
-                display: 'flex',
-                alignItems: 'baseline',
-                gap: '6px',
-                marginBottom: '8px'
-              }}>
-                <span style={{
-                  fontSize: '36px',
-                  fontWeight: '700'
-                }}>
-                  {profile.vouches_count === 0 ? (
-  <div style={{
-    background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
-    border: '2px dashed #d97706',
-    borderRadius: '16px',
-    padding: '20px',
-    textAlign: 'center'
-  }}>
-    <div style={{ fontSize: '32px', marginBottom: '8px' }}>🎯</div>
-    <div style={{ 
-      fontSize: '15px', 
-      fontWeight: '700', 
-      color: '#92400e', 
-      marginBottom: '6px' 
-    }}>
-      Build Your Trust Score
-    </div>
-    <div style={{ 
-      fontSize: '13px', 
-      color: '#78350f', 
-      marginBottom: '12px' 
-    }}>
-      Vouches: 0/5 to unlock Gold
-    </div>
-    <div style={{ 
-      fontSize: '12px', 
-      color: '#78350f', 
-      marginBottom: '12px', 
-      lineHeight: '1.5' 
-    }}>
-      Get vouched by connections to:<br/>
-      ✓ Unlock premium profiles<br/>
-      ✓ Increase match quality<br/>
-      ✓ Stand out from the crowd
-    </div>
-    <button style={{
-      background: '#d97706',
-      color: 'white',
-      padding: '8px 16px',
-      borderRadius: '8px',
-      border: 'none',
-      fontSize: '12px',
-      fontWeight: '600',
-      cursor: 'pointer'
-    }}>
-      How to Get Vouched →
-    </button>
-  </div>
-) : (
-  <div>
-    <span style={{ fontSize: '24px', fontWeight: '700' }}>
-      {profile.vouches_count}
-    </span>
-    <span style={{ fontSize: '14px', color: '#64748b', marginLeft: '8px' }}>
-      people have vouched for you
-    </span>
-  </div>
-)}
+              <div style={{ fontSize: '28px', fontWeight: '700', marginBottom: '4px' }}>
+                {profile.vouches_count}
+                <span style={{ fontSize: '14px', fontWeight: '500', color: '#94a3b8', marginLeft: '8px' }}>
+                  vouches
                 </span>
               </div>
-              <p style={{
-                fontSize: '12px',
-                color: '#94a3b8',
-                maxWidth: '180px',
-                lineHeight: '1.5'
-              }}>
-                Your connections have vouched for your character & authenticity.
+              <p style={{ fontSize: '12px', color: '#94a3b8', margin: 0 }}>
+                Connections vouched for your authenticity
               </p>
             </div>
-            
             <button style={{
               height: '40px',
               padding: '0 16px',
               background: 'rgba(255, 255, 255, 0.1)',
-              backdropFilter: 'blur(12px)',
               border: '1px solid rgba(255, 255, 255, 0.1)',
-              borderRadius: '16px',
+              borderRadius: '12px',
               fontSize: '12px',
               fontWeight: '700',
               color: 'white',
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
+              gap: '6px',
               cursor: 'pointer',
-              transition: 'all 0.2s',
               fontFamily: 'inherit'
             }}
             onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)'}
@@ -861,7 +814,7 @@ export default function MyProfilePage() {
               <Users size={14} /> View
             </button>
           </div>
-        </div>
+        )}
       </motion.div>
 
       {/* Action Dock */}

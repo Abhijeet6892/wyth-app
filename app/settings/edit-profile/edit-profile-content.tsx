@@ -113,11 +113,14 @@ export default function EditProfileContent() {
     photo_face: "",
     photo_body: "",
     photo_hobby: "",
+    photo_general: "",
     
     // Background
     hometown: "",
     family_type: "",
     values: "",
+    horoscope: "",
+    family_income: "",
     
     // Culture
     religion: "",
@@ -262,9 +265,12 @@ export default function EditProfileContent() {
           photo_face: data.avatar_url || "",
           photo_body: data.photo_body_url || "",
           photo_hobby: data.photo_hobby_url || "",
+          photo_general: data.photo_general_url || "",
           hometown: data.hometown || "",
           family_type: data.family_type || "",
           values: data.values || "",
+          horoscope: data.values || "",
+          family_income: data.values || "",
           religion: data.religion || "",
           mother_tongue: data.mother_tongue || "",
           about_family: data.about_family || "",
@@ -292,7 +298,7 @@ export default function EditProfileContent() {
   // Photo Upload Handler
   const handleUpload = async (
     event: React.ChangeEvent<HTMLInputElement>, 
-    field: 'photo_face' | 'photo_body' | 'photo_hobby'
+    field: 'photo_face' | 'photo_body' | 'photo_hobby' | 'photo_general'
   ) => {
     if (!event.target.files || event.target.files.length === 0) return;
     if (!user) {
@@ -401,6 +407,8 @@ export default function EditProfileContent() {
         hometown: formData.hometown,
         family_type: formData.family_type,
         values: formData.values,
+        horoscope: formData.horoscope, // ✅ ADDED THIS LINE
+        family_income: formData.family_income, // ✅ ADDED THIS LINE
         religion: formData.religion,
         mother_tongue: formData.mother_tongue,
         about_family: formData.about_family,
@@ -709,12 +717,13 @@ export default function EditProfileContent() {
                       alignItems: 'center',
                       gap: '6px',
                       background: 'white',
-                      border: '1px solid rgba(30, 58, 138, 0.1)',
+                      border: '1.5px solid rgba(30, 58, 138, 0.1)',
                       padding: '8px 16px',
                       borderRadius: '8px',
                       boxShadow: '0 2px 8px rgba(30, 58, 138, 0.05)',
                       cursor: 'pointer',
                       fontSize: '12px',
+                      boxSizing: 'border-box',
                       fontWeight: '700',
                       fontFamily: 'inherit'
                     }}
@@ -738,9 +747,10 @@ export default function EditProfileContent() {
                       style={{
                         fontSize: '11px',
                         fontWeight: '700',
-                        padding: '6px 12px',
+                        padding: '14px 16px',
                         borderRadius: '8px',
                         border: 'none',
+                        boxSizing: 'border-box',
                         background: selectedTone === tone ? '#e0e7ff' : 'white',
                         color: selectedTone === tone ? '#1e3a8a' : '#94a3b8',
                         cursor: 'pointer',
@@ -759,11 +769,12 @@ export default function EditProfileContent() {
                     width: '100%',
                     height: '120px',
                     background: 'white',
-                    padding: '16px',
+                    padding: '16px 14px',
                     borderRadius: '12px',
                     border: '1.5px solid rgba(30, 58, 138, 0.1)',
                     fontSize: '15px',
                     resize: 'none',
+                    boxSizing: 'border-box',
                     fontFamily: 'inherit',
                     outline: 'none'
                   }}
@@ -925,15 +936,16 @@ export default function EditProfileContent() {
                       }}
                       style={{
                         width: '100%',
-                        padding: '14px 2px',
+                        padding: '14px 16px 14px 42px',
                         borderRadius: '12px',
                         border: '1.5px solid rgba(30, 58, 138, 0.2)',
                         backgroundColor: 'white',
                         fontSize: '15px',
                         outline: 'none',
+                        boxSizing: 'border-box',
                         fontFamily: 'inherit'
                       }}
-                      placeholder=" "
+                      placeholder=" Search your City"
                     />
                     {showCityDropdown && citySearch.length > 0 && (
                       <div style={{
@@ -985,240 +997,322 @@ export default function EditProfileContent() {
               style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}
             >
               <GlassCard>
-                <SectionTitle>Profile Photos</SectionTitle>
-                
-                {uploadError && (
-                  <div style={{
-                    padding: '12px 16px',
-                    background: '#fee2e2',
-                    border: '1px solid #fecaca',
-                    borderRadius: '12px',
-                    marginBottom: '16px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px'
-                  }}>
-                    <XCircle size={16} style={{ color: '#dc2626' }} />
-                    <span style={{ fontSize: '13px', color: '#991b1b' }}>{uploadError}</span>
-                  </div>
-                )}
+  <SectionTitle>Profile Photos</SectionTitle>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '16px' }}>
-                  {/* Face Photo */}
-                  <input 
-                    type="file" 
-                    id="upload-face" 
-                    hidden 
-                    accept="image/*"
-                    onChange={(e) => handleUpload(e, 'photo_face')}
-                    disabled={uploadingPhoto}
-                  />
-                  <PhotoUploadBox
-                    label="Face Close-up *"
-                    subtitle="Clear lighting, no sunglasses"
-                    photoUrl={formData.photo_face}
-                    uploading={uploadingPhoto}
-                    onClick={() => !uploadingPhoto && triggerFileInput('upload-face')}
-                  />
+  {uploadError && (
+    <div style={{
+      padding: '12px 16px',
+      background: '#fee2e2',
+      border: '1px solid #fecaca',
+      borderRadius: '12px',
+      marginBottom: '16px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px'
+    }}>
+      <XCircle size={16} style={{ color: '#dc2626' }} />
+      <span style={{ fontSize: '13px', color: '#991b1b' }}>{uploadError}</span>
+    </div>
+  )}
 
-                  {/* Body Photo */}
-                  <input 
-                    type="file" 
-                    id="upload-body" 
-                    hidden 
-                    accept="image/*"
-                    onChange={(e) => handleUpload(e, 'photo_body')}
-                    disabled={uploadingPhoto}
-                  />
-                  <PhotoUploadBox
-                    label="Full Body *"
-                    subtitle="Show your physical presence"
-                    photoUrl={formData.photo_body}
-                    uploading={uploadingPhoto}
-                    onClick={() => !uploadingPhoto && triggerFileInput('upload-body')}
-                  />
+  <div style={{
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '12px',
+    marginTop: '16px'
+  }}>
+    <input type="file" id="upload-face" hidden accept="image/*"
+      onChange={(e) => handleUpload(e, 'photo_face')} disabled={uploadingPhoto} />
+    <PhotoUploadBox label="Face Close-up *" subtitle="No sunglasses"
+      photoUrl={formData.photo_face} uploading={uploadingPhoto}
+      onClick={() => !uploadingPhoto && triggerFileInput('upload-face')} />
 
-                  {/* Hobby Photo */}
-                  <input 
-                    type="file" 
-                    id="upload-hobby" 
-                    hidden 
-                    accept="image/*"
-                    onChange={(e) => handleUpload(e, 'photo_hobby')}
-                    disabled={uploadingPhoto}
-                  />
-                  <PhotoUploadBox
-                    label="Lifestyle/Hobby"
-                    subtitle="Optional, but encouraged"
-                    photoUrl={formData.photo_hobby}
-                    uploading={uploadingPhoto}
-                    onClick={() => !uploadingPhoto && triggerFileInput('upload-hobby')}
-                  />
-                </div>
+    <input type="file" id="upload-body" hidden accept="image/*"
+      onChange={(e) => handleUpload(e, 'photo_body')} disabled={uploadingPhoto} />
+    <PhotoUploadBox label="Full Body *" subtitle="Full presence"
+      photoUrl={formData.photo_body} uploading={uploadingPhoto}
+      onClick={() => !uploadingPhoto && triggerFileInput('upload-body')} />
 
-                <p style={{ fontSize: '12px', color: '#94a3b8', textAlign: 'center', marginTop: '16px' }}>
-                  Max 5MB per photo • JPG, PNG, WEBP
-                </p>
-              </GlassCard>
+    <input type="file" id="upload-hobby" hidden accept="image/*"
+      onChange={(e) => handleUpload(e, 'photo_hobby')} disabled={uploadingPhoto} />
+    <PhotoUploadBox label="Hobby/Lifestyle" subtitle="Optional"
+      photoUrl={formData.photo_hobby} uploading={uploadingPhoto}
+      onClick={() => !uploadingPhoto && triggerFileInput('upload-hobby')} />
+
+    <input type="file" id="upload-general" hidden accept="image/*"
+      onChange={(e) => handleUpload(e, 'photo_general')} disabled={uploadingPhoto} />
+    <PhotoUploadBox label="General" subtitle="Any vibe photo"
+      photoUrl={formData.photo_general} uploading={uploadingPhoto}
+      onClick={() => !uploadingPhoto && triggerFileInput('upload-general')} />
+  </div>
+
+  <p style={{ fontSize: '12px', color: '#94a3b8', textAlign: 'center', marginTop: '16px' }}>
+    Max 5MB per photo • JPG, PNG, WEBP
+  </p>
+</GlassCard>
             </motion.div>
           )}
 
           {/* BACKGROUND SECTION */}
-          {activeSection === 'background' && (
-            <motion.div
-              key="background"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}
-            >
-              <GlassCard>
-                <SectionTitle>Your Roots</SectionTitle>
-                
-                <div style={{ marginTop: '16px', position: 'relative' }}>
-                  <label style={{
-                    fontSize: '12px',
-                    fontWeight: '600',
-                    color: '#64748b',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
-                    marginBottom: '8px',
-                    display: 'block'
-                  }}>Hometown *</label>
-                  <div style={{ position: 'relative' }}>
-                    <Home size={18} style={{ 
-                      position: 'absolute', 
-                      left: '14px', 
-                      top: '50%', 
-                      transform: 'translateY(-50%)',
-                      color: '#64748b'
-                    }}/>
-                    <input 
-                      value={hometownSearch}
-                      onFocus={() => setShowHometownDropdown(true)}
-                      onChange={e => {
-                        setHometownSearch(e.target.value);
-                        setFormData({...formData, hometown: e.target.value});
-                        setShowHometownDropdown(true);
-                      }}
-                      style={{
-                        width: '100%',
-                        padding: '14px 42px 14px 42px',
-                        borderRadius: '12px',
-                        border: '1.5px solid rgba(30, 58, 138, 0.2)',
-                        backgroundColor: 'white',
-                        fontSize: '15px',
-                        outline: 'none',
-                        fontFamily: 'inherit'
-                      }}
-                      placeholder="Where are your roots?"
-                    />
-                    {showHometownDropdown && hometownSearch.length > 0 && (
-                      <div style={{
-                        position: 'absolute',
-                        top: '100%',
-                        left: 0,
-                        right: 0,
-                        marginTop: '4px',
-                        background: 'white',
-                        borderRadius: '12px',
-                        boxShadow: '0 8px 24px rgba(30, 58, 138, 0.15)',
-                        border: '1px solid rgba(30, 58, 138, 0.1)',
-                        maxHeight: '200px',
-                        overflowY: 'auto',
-                        zIndex: 50
-                      }}>
-                        {CITIES.filter(c => c.toLowerCase().includes(hometownSearch.toLowerCase())).map(city => (
-                          <div 
-                            key={city} 
-                            onClick={() => handleHometownSelect(city)}
-                            style={{
-                              padding: '12px 16px',
-                              cursor: 'pointer',
-                              fontSize: '14px',
-                              color: '#1e3a8a'
-                            }}
-                            onMouseEnter={(e) => e.currentTarget.style.background = '#f1f5f9'}
-                            onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
-                          >
-                            {city}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+{activeSection === 'background' && (
+  <motion.div
+    key="background"
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, y: -20 }}
+    style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}
+  >
+    <GlassCard>
+      <SectionTitle>Your Roots</SectionTitle>
+      
+      {/* Hometown */}
+      <div style={{ marginTop: '16px', position: 'relative' }}>
+        <label style={{
+          fontSize: '12px',
+          fontWeight: '600',
+          color: '#64748b',
+          textTransform: 'uppercase',
+          letterSpacing: '0.5px',
+          marginBottom: '8px',
+          display: 'block'
+        }}>Hometown *</label>
+        <div style={{ position: 'relative' }}>
+          <Home size={18} style={{ 
+            position: 'absolute', 
+            left: '14px', 
+            top: '50%', 
+            transform: 'translateY(-50%)',
+            color: '#64748b'
+          }}/>
+          <input 
+            value={hometownSearch}
+            onFocus={() => setShowHometownDropdown(true)}
+            onChange={e => {
+              setHometownSearch(e.target.value);
+              setFormData({...formData, hometown: e.target.value});
+              setShowHometownDropdown(true);
+            }}
+            style={{
+              width: '100%',
+              padding: '14px 42px 14px 42px',
+              borderRadius: '12px',
+              border: '1.5px solid rgba(30, 58, 138, 0.2)',
+              backgroundColor: 'white',
+              fontSize: '15px',
+              outline: 'none',
+              boxSizing: 'border-box',
+              fontFamily: 'inherit'
+            }}
+            placeholder="Where are your roots?"
+          />
+          {showHometownDropdown && hometownSearch.length > 0 && (
+            <div style={{
+              position: 'absolute',
+              top: '100%',
+              left: 0,
+              right: 0,
+              marginTop: '4px',
+              background: 'white',
+              borderRadius: '12px',
+              boxShadow: '0 8px 24px rgba(30, 58, 138, 0.15)',
+              border: '1px solid rgba(30, 58, 138, 0.1)',
+              maxHeight: '200px',
+              overflowY: 'auto',
+              zIndex: 50
+            }}>
+              {CITIES.filter(c => c.toLowerCase().includes(hometownSearch.toLowerCase())).map(city => (
+                <div 
+                  key={city} 
+                  onClick={() => handleHometownSelect(city)}
+                  style={{
+                    padding: '12px 16px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    color: '#1e3a8a'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = '#f1f5f9'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
+                >
+                  {city}
                 </div>
-
-                <div style={{ marginTop: '16px' }}>
-                  <label style={{
-                    fontSize: '12px',
-                    fontWeight: '600',
-                    color: '#64748b',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
-                    marginBottom: '8px',
-                    display: 'block'
-                  }}>Family Type *</label>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    {['Nuclear', 'Joint'].map(ft => (
-                      <button
-                        key={ft}
-                        onClick={() => setFormData({...formData, family_type: ft})}
-                        style={{
-                          flex: 1,
-                          padding: '12px',
-                          borderRadius: '12px',
-                          fontSize: '14px',
-                          fontWeight: '600',
-                          border: formData.family_type === ft ? '2px solid #1e3a8a' : '2px solid rgba(30, 58, 138, 0.2)',
-                          background: formData.family_type === ft ? '#1e3a8a' : 'white',
-                          color: formData.family_type === ft ? 'white' : '#64748b',
-                          cursor: 'pointer',
-                          fontFamily: 'inherit'
-                        }}
-                      >
-                        {ft}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div style={{ marginTop: '16px' }}>
-                  <label style={{
-                    fontSize: '12px',
-                    fontWeight: '600',
-                    color: '#64748b',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
-                    marginBottom: '8px',
-                    display: 'block'
-                  }}>Values *</label>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    {['Liberal', 'Moderate', 'Traditional'].map(v => (
-                      <button
-                        key={v}
-                        onClick={() => setFormData({...formData, values: v})}
-                        style={{
-                          flex: 1,
-                          padding: '12px',
-                          borderRadius: '12px',
-                          fontSize: '14px',
-                          fontWeight: '600',
-                          border: formData.values === v ? '2px solid #1e3a8a' : '2px solid rgba(30, 58, 138, 0.2)',
-                          background: formData.values === v ? '#1e3a8a' : 'white',
-                          color: formData.values === v ? 'white' : '#64748b',
-                          cursor: 'pointer',
-                          fontFamily: 'inherit'
-                        }}
-                      >
-                        {v}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </GlassCard>
-            </motion.div>
+              ))}
+            </div>
           )}
+        </div>
+      </div>
+
+      {/* Family Type */}
+      <div style={{ marginTop: '16px' }}>
+        <label style={{
+          fontSize: '12px',
+          fontWeight: '600',
+          color: '#64748b',
+          textTransform: 'uppercase',
+          letterSpacing: '0.5px',
+          marginBottom: '8px',
+          display: 'block'
+        }}>Family Type *</label>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {['Nuclear', 'Joint'].map(ft => (
+            <button
+              key={ft}
+              onClick={() => setFormData({...formData, family_type: ft})}
+              style={{
+                flex: 1,
+                padding: '12px',
+                borderRadius: '12px',
+                fontSize: '14px',
+                fontWeight: '600',
+                border: formData.family_type === ft ? '2px solid #1e3a8a' : '2px solid rgba(30, 58, 138, 0.2)',
+                background: formData.family_type === ft ? '#1e3a8a' : 'white',
+                color: formData.family_type === ft ? 'white' : '#64748b',
+                cursor: 'pointer',
+                fontFamily: 'inherit'
+              }}
+            >
+              {ft}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Values */}
+      <div style={{ marginTop: '16px' }}>
+        <label style={{
+          fontSize: '12px',
+          fontWeight: '600',
+          color: '#64748b',
+          textTransform: 'uppercase',
+          letterSpacing: '0.5px',
+          marginBottom: '8px',
+          display: 'block'
+        }}>Values *</label>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {['Liberal', 'Moderate', 'Traditional'].map(v => (
+            <button
+              key={v}
+              onClick={() => setFormData({...formData, values: v})}
+              style={{
+                flex: 1,
+                padding: '12px',
+                borderRadius: '12px',
+                fontSize: '14px',
+                fontWeight: '600',
+                border: formData.values === v ? '2px solid #1e3a8a' : '2px solid rgba(30, 58, 138, 0.2)',
+                background: formData.values === v ? '#1e3a8a' : 'white',
+                color: formData.values === v ? 'white' : '#64748b',
+                cursor: 'pointer',
+                fontFamily: 'inherit'
+              }}
+            >
+              {v}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Horoscope / Birth Sign - ADD HERE */}
+      <div style={{ marginTop: '16px' }}>
+        <label style={{
+          fontSize: '12px',
+          fontWeight: '600',
+          color: '#64748b',
+          textTransform: 'uppercase',
+          letterSpacing: '0.5px',
+          marginBottom: '8px',
+          display: 'block'
+        }}>
+          Horoscope / Birth Sign
+        </label>
+        <select
+          value={formData.horoscope || ''}
+          onChange={(e) => setFormData({...formData, horoscope: e.target.value})}
+          style={{
+            width: '100%',
+            padding: '14px 16px',
+            borderRadius: '12px',
+            border: '1.5px solid rgba(226, 232, 240, 0.5)',
+            background: 'rgba(248, 250, 252, 0.8)',
+            fontSize: '15px',
+            color: formData.horoscope ? '#1e3a8a' : '#94a3b8',
+            outline: 'none',
+            fontFamily: 'inherit',
+            cursor: 'pointer',
+            appearance: 'none',
+            backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: 'right 12px center',
+            backgroundSize: '20px',
+            paddingRight: '40px',
+            boxSizing: 'border-box'
+          }}
+        >
+          <option value="">Select your horoscope sign</option>
+          <option value="Aries">Aries (Mar 21 - Apr 19)</option>
+          <option value="Taurus">Taurus (Apr 20 - May 20)</option>
+          <option value="Gemini">Gemini (May 21 - Jun 20)</option>
+          <option value="Cancer">Cancer (Jun 21 - Jul 22)</option>
+          <option value="Leo">Leo (Jul 23 - Aug 22)</option>
+          <option value="Virgo">Virgo (Aug 23 - Sep 22)</option>
+          <option value="Libra">Libra (Sep 23 - Oct 22)</option>
+          <option value="Scorpio">Scorpio (Oct 23 - Nov 21)</option>
+          <option value="Sagittarius">Sagittarius (Nov 22 - Dec 21)</option>
+          <option value="Capricorn">Capricorn (Dec 22 - Jan 19)</option>
+          <option value="Aquarius">Aquarius (Jan 20 - Feb 18)</option>
+          <option value="Pisces">Pisces (Feb 19 - Mar 20)</option>
+        </select>
+      </div>
+
+      {/* Family Income - ADD HERE */}
+      <div style={{ marginTop: '16px' }}>
+        <label style={{
+          fontSize: '12px',
+          fontWeight: '600',
+          color: '#64748b',
+          textTransform: 'uppercase',
+          letterSpacing: '0.5px',
+          marginBottom: '8px',
+          display: 'block'
+        }}>
+          Family Income (Annual)
+        </label>
+        <select
+          value={formData.family_income || ''}
+          onChange={(e) => setFormData({...formData, family_income: e.target.value})}
+          style={{
+            width: '100%',
+            padding: '14px 16px',
+            borderRadius: '12px',
+            border: '1.5px solid rgba(226, 232, 240, 0.5)',
+            background: 'rgba(248, 250, 252, 0.8)',
+            fontSize: '15px',
+            color: formData.family_income ? '#1e3a8a' : '#94a3b8',
+            outline: 'none',
+            fontFamily: 'inherit',
+            cursor: 'pointer',
+            appearance: 'none',
+            backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: 'right 12px center',
+            backgroundSize: '20px',
+            paddingRight: '40px',
+            boxSizing: 'border-box'
+          }}
+        >
+          <option value="">Select income range</option>
+          <option value="Below 5 Lakh">Below ₹5 Lakh</option>
+          <option value="5-10 Lakh">₹5 - 10 Lakh</option>
+          <option value="10-20 Lakh">₹10 - 20 Lakh</option>
+          <option value="20-50 Lakh">₹20 - 50 Lakh</option>
+          <option value="50 Lakh - 1 Crore">₹50 Lakh - ₹1 Crore</option>
+          <option value="Above 1 Crore">Above ₹1 Crore</option>
+          <option value="Prefer not to say">Prefer not to say</option>
+        </select>
+      </div>
+
+    </GlassCard>
+  </motion.div>
+)}
 
           {/* CULTURE SECTION */}
           {activeSection === 'culture' && (
@@ -1318,16 +1412,17 @@ export default function EditProfileContent() {
                     style={{
                       width: '100%',
                       height: '100px',
-                      padding: '14px 0px',
+                      padding: '14px 16px',
                       borderRadius: '12px',
                       border: '1.5px solid rgba(30, 58, 138, 0.2)',
                       backgroundColor: 'white',
                       fontSize: '15px',
                       resize: 'none',
+                      boxSizing: 'border-box',
                       fontFamily: 'inherit',
                       outline: 'none'
                     }}
-                    placeholder="    E.g. I have a younger brother & a elder sister who is Happily Married"
+                    placeholder="E.g. I have a younger brother & a elder sister who is Happily Married"
                   />
                 </div>
               </GlassCard>
@@ -1661,7 +1756,7 @@ export default function EditProfileContent() {
                   icon={<Linkedin size={16} style={{ color: '#0077b5' }} />}
                   value={formData.linkedin_url}
                   onChange={(e) => setFormData({...formData, linkedin_url: e.target.value})}
-                  placeholder="https://linkedin.com/in/yourname"
+                  placeholder="https://linkedin.com/in/your-name"
                 />
 
                 <InputField
@@ -1673,7 +1768,7 @@ export default function EditProfileContent() {
                 />
 
                 <p style={{ fontSize: '12px', color: '#94a3b8', marginTop: '12px', textAlign: 'center' }}>
-                  Optional • Helps build trust and authenticity
+                  Optional • Helps build 'Trust' & 'Authenticity' • Only Visible to Gold & Premium Members
                 </p>
               </GlassCard>
             </motion.div>
@@ -2012,7 +2107,8 @@ function InputField({
           backgroundColor: 'white',
           fontSize: '15px',
           outline: 'none',
-          fontFamily: 'inherit'
+          fontFamily: 'inherit',
+          boxSizing: 'border-box'
         }}
       />
     </div>
@@ -2037,14 +2133,14 @@ function PhotoUploadBox({
       onClick={onClick}
       style={{
         background: photoUrl 
-          ? `linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url(${photoUrl}) center/cover` 
+          ? `linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.2)), url(${photoUrl}) center/cover no-repeat` 
           : 'white',
         border: photoUrl ? '2px solid #10b981' : '2px dashed rgba(30, 58, 138, 0.2)',
         borderRadius: '16px',
         padding: '24px',
         textAlign: 'center',
         cursor: uploading ? 'not-allowed' : 'pointer',
-        minHeight: '120px',
+        minHeight: '280px',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
