@@ -139,6 +139,7 @@ export default function Onboarding() {
     photo_face: "",
     photo_body: "",
     photo_hobby: "",
+    photo_general: "",
     // Step 6 (NEW - Roots)
     hometown: "",
     family_type: "",
@@ -261,8 +262,7 @@ export default function Onboarding() {
   // --- PHOTO UPLOAD HANDLERS ---
   const handleUpload = async (
     event: React.ChangeEvent<HTMLInputElement>, 
-    field: 'photo_face' | 'photo_body' | 'photo_hobby'
-  ) => {
+    field: 'photo_face' | 'photo_body' | 'photo_hobby' | 'photo_general'  ) => {
     if (!event.target.files || event.target.files.length === 0) return;
     if (!user) {
       setUploadError("Please log in to upload photos");
@@ -417,7 +417,7 @@ export default function Onboarding() {
   const handleAiBio = async () => {
     // 1. Validation: Ensure there is some text to work with
     if (!formData.bio || formData.bio.length < 5) {
-      alert("Please write a rough draft first (at least 5 characters).");
+      alert("Please write a rough draft first (at least 4-5 characters per section (Eg. About, Family & Hobby)).");
       return;
     }
     
@@ -471,6 +471,7 @@ export default function Onboarding() {
       avatar_url: formData.photo_face,
       photo_body_url: formData.photo_body,
       photo_hobby_url: formData.photo_hobby,
+      photo_general_url: formData.photo_general,
       // Background
       hometown: formData.hometown,
       family_type: formData.family_type,
@@ -1487,7 +1488,7 @@ export default function Onboarding() {
                   Your Vibe <Sparkles size={24} style={{ color: '#f59e0b' }}/>
                 </h2>
                 <p style={{ color: '#64748b', fontSize: '12px' }}>
-                  AI can help you re-write your bio.But can make mistakes.Just drop a rough draft.
+                  AI can help you re-write your bio.Just drop a rough draft. Please verify before proceeding.
                 </p>
               </div>
 
@@ -1921,195 +1922,178 @@ export default function Onboarding() {
                 </div>
               )}
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '20px' }}>
-                
-                {/* 1. FACE PHOTO */}
-                <input 
-                  type="file" 
-                  id="upload-face" 
-                  hidden 
-                  accept="image/*"
-                  onChange={(e) => handleUpload(e, 'photo_face')}
-                  disabled={uploadingPhoto}
-                />
-                <div 
-                  onClick={() => !uploadingPhoto && triggerFileInput('upload-face')}
-                  style={{
-                    background: formData.photo_face 
-                      ? `linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url(${formData.photo_face}) center/cover` 
-                      : 'white',
-                    border: formData.photo_face ? '2px solid #10b981' : '2px dashed rgba(30, 58, 138, 0.2)',
-                    borderRadius: '16px',
-                    padding: '24px',
-                    textAlign: 'center',
-                    cursor: uploadingPhoto ? 'not-allowed' : 'pointer',
-                    minHeight: '120px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    position: 'relative',
-                    overflow: 'hidden',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!uploadingPhoto) {
-                      e.currentTarget.style.borderColor = formData.photo_face ? '#10b981' : '#1e3a8a';
-                      e.currentTarget.style.transform = 'translateY(-2px)';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = formData.photo_face ? '#10b981' : 'rgba(30, 58, 138, 0.2)';
-                    e.currentTarget.style.transform = 'translateY(0)';
-                  }}
-                >
-                  {uploadingPhoto ? (
-                    <Loader2 size={32} style={{ color: '#1e3a8a', animation: 'spin 1s linear infinite' }}/>
-                  ) : formData.photo_face ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'white' }}>
-                      <CheckCircle2 size={20} style={{ color: '#10b981' }} />
-                      <span style={{ fontWeight: '600', fontSize: '14px', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
-                        Face Photo Uploaded • Click to change
-                      </span>
-                    </div>
-                  ) : (
-                    <>
-                      <Camera size={32} style={{ color: '#1e3a8a', marginBottom: '12px' }}/>
-                      <div style={{ fontWeight: '600', color: '#1e3a8a', fontSize: '15px', marginBottom: '4px' }}>
-                        Face Close-up *
-                      </div>
-                      <div style={{ fontSize: '13px', color: '#64748b' }}>
-                        Clear lighting, no sunglasses
-                      </div>
-                    </>
-                  )}
-                </div>
+<div style={{
+  display: 'grid',
+  gridTemplateColumns: '1fr 1fr',
+  gap: '12px',
+  marginBottom: '20px'
+}}>
 
-                {/* 2. BODY PHOTO */}
-                <input 
-                  type="file" 
-                  id="upload-body" 
-                  hidden 
-                  accept="image/*"
-                  onChange={(e) => handleUpload(e, 'photo_body')}
-                  disabled={uploadingPhoto}
-                />
-                <div 
-                  onClick={() => !uploadingPhoto && triggerFileInput('upload-body')}
-                  style={{
-                    background: formData.photo_body 
-                      ? `linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url(${formData.photo_body}) center/cover` 
-                      : 'white',
-                    border: formData.photo_body ? '2px solid #10b981' : '2px dashed rgba(30, 58, 138, 0.2)',
-                    borderRadius: '16px',
-                    padding: '24px',
-                    textAlign: 'center',
-                    cursor: uploadingPhoto ? 'not-allowed' : 'pointer',
-                    minHeight: '120px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    position: 'relative',
-                    overflow: 'hidden',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!uploadingPhoto) {
-                      e.currentTarget.style.borderColor = formData.photo_body ? '#10b981' : '#1e3a8a';
-                      e.currentTarget.style.transform = 'translateY(-2px)';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = formData.photo_body ? '#10b981' : 'rgba(30, 58, 138, 0.2)';
-                    e.currentTarget.style.transform = 'translateY(0)';
-                  }}
-                >
-                  {uploadingPhoto ? (
-                    <Loader2 size={32} style={{ color: '#1e3a8a', animation: 'spin 1s linear infinite' }}/>
-                  ) : formData.photo_body ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'white' }}>
-                      <CheckCircle2 size={20} style={{ color: '#10b981' }} />
-                      <span style={{ fontWeight: '600', fontSize: '14px', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
-                        Body Photo Uploaded • Click to change
-                      </span>
-                    </div>
-                  ) : (
-                    <>
-                      <Camera size={32} style={{ color: '#1e3a8a', marginBottom: '12px' }}/>
-                      <div style={{ fontWeight: '600', color: '#1e3a8a', fontSize: '15px', marginBottom: '4px' }}>
-                        Full Body *
-                      </div>
-                      <div style={{ fontSize: '13px', color: '#64748b' }}>
-                        Show your physical presence
-                      </div>
-                    </>
-                  )}
-                </div>
+  {/* 1. FACE PHOTO */}
+  <input type="file" id="upload-face" hidden accept="image/*"
+    onChange={(e) => handleUpload(e, 'photo_face')} disabled={uploadingPhoto} />
+  <div
+    onClick={() => !uploadingPhoto && triggerFileInput('upload-face')}
+    style={{
+      background: formData.photo_face
+        ? `linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url(${formData.photo_face}) center/cover`
+        : 'white',
+      border: formData.photo_face ? '2px solid #10b981' : '2px dashed rgba(30, 58, 138, 0.2)',
+      borderRadius: '16px',
+      aspectRatio: '1',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      cursor: uploadingPhoto ? 'not-allowed' : 'pointer',
+      transition: 'all 0.2s',
+      overflow: 'hidden',
+      padding: '12px',
+      textAlign: 'center'
+    }}
+    onMouseEnter={(e) => { if (!uploadingPhoto) e.currentTarget.style.borderColor = formData.photo_face ? '#10b981' : '#1e3a8a'; }}
+    onMouseLeave={(e) => { e.currentTarget.style.borderColor = formData.photo_face ? '#10b981' : 'rgba(30, 58, 138, 0.2)'; }}
+  >
+    {uploadingPhoto ? (
+      <Loader2 size={24} style={{ color: '#1e3a8a', animation: 'spin 1s linear infinite' }} />
+    ) : formData.photo_face ? (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+        <CheckCircle2 size={20} style={{ color: '#10b981' }} />
+        <span style={{ fontSize: '11px', color: 'white', fontWeight: '600', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>Tap to change</span>
+      </div>
+    ) : (
+      <>
+        <Camera size={24} style={{ color: '#1e3a8a', marginBottom: '8px' }} />
+        <div style={{ fontSize: '13px', fontWeight: '700', color: '#1e3a8a', marginBottom: '2px' }}>Face Close-up *</div>
+        <div style={{ fontSize: '11px', color: '#94a3b8' }}>No sunglasses</div>
+      </>
+    )}
+  </div>
 
-                {/* 3. LIFESTYLE PHOTO */}
-                <input 
-                  type="file" 
-                  id="upload-hobby" 
-                  hidden 
-                  accept="image/*"
-                  onChange={(e) => handleUpload(e, 'photo_hobby')}
-                  disabled={uploadingPhoto}
-                />
-                <div 
-                  onClick={() => !uploadingPhoto && triggerFileInput('upload-hobby')}
-                  style={{
-                    background: formData.photo_hobby 
-                      ? `linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url(${formData.photo_hobby}) center/cover` 
-                      : 'white',
-                    border: formData.photo_hobby ? '2px solid #10b981' : '2px dashed rgba(30, 58, 138, 0.2)',
-                    borderRadius: '16px',
-                    padding: '24px',
-                    textAlign: 'center',
-                    cursor: uploadingPhoto ? 'not-allowed' : 'pointer',
-                    minHeight: '120px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    position: 'relative',
-                    overflow: 'hidden',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!uploadingPhoto) {
-                      e.currentTarget.style.borderColor = formData.photo_hobby ? '#10b981' : '#1e3a8a';
-                      e.currentTarget.style.transform = 'translateY(-2px)';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = formData.photo_hobby ? '#10b981' : 'rgba(30, 58, 138, 0.2)';
-                    e.currentTarget.style.transform = 'translateY(0)';
-                  }}
-                >
-                  {uploadingPhoto ? (
-                    <Loader2 size={32} style={{ color: '#1e3a8a', animation: 'spin 1s linear infinite' }}/>
-                  ) : formData.photo_hobby ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'white' }}>
-                      <CheckCircle2 size={20} style={{ color: '#10b981' }} />
-                      <span style={{ fontWeight: '600', fontSize: '14px', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
-                        Lifestyle Photo Uploaded • Click to change
-                      </span>
-                    </div>
-                  ) : (
-                    <>
-                      <Camera size={32} style={{ color: '#1e3a8a', marginBottom: '12px' }}/>
-                      <div style={{ fontWeight: '600', color: '#1e3a8a', fontSize: '15px', marginBottom: '4px' }}>
-                        Lifestyle/Hobby
-                      </div>
-                      <div style={{ fontSize: '13px', color: '#64748b' }}>
-                        Optional, but encouraged
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
+  {/* 2. BODY PHOTO */}
+  <input type="file" id="upload-body" hidden accept="image/*"
+    onChange={(e) => handleUpload(e, 'photo_body')} disabled={uploadingPhoto} />
+  <div
+    onClick={() => !uploadingPhoto && triggerFileInput('upload-body')}
+    style={{
+      background: formData.photo_body
+        ? `linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url(${formData.photo_body}) center/cover`
+        : 'white',
+      border: formData.photo_body ? '2px solid #10b981' : '2px dashed rgba(30, 58, 138, 0.2)',
+      borderRadius: '16px',
+      aspectRatio: '1',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      cursor: uploadingPhoto ? 'not-allowed' : 'pointer',
+      transition: 'all 0.2s',
+      overflow: 'hidden',
+      padding: '12px',
+      textAlign: 'center'
+    }}
+    onMouseEnter={(e) => { if (!uploadingPhoto) e.currentTarget.style.borderColor = formData.photo_body ? '#10b981' : '#1e3a8a'; }}
+    onMouseLeave={(e) => { e.currentTarget.style.borderColor = formData.photo_body ? '#10b981' : 'rgba(30, 58, 138, 0.2)'; }}
+  >
+    {uploadingPhoto ? (
+      <Loader2 size={24} style={{ color: '#1e3a8a', animation: 'spin 1s linear infinite' }} />
+    ) : formData.photo_body ? (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+        <CheckCircle2 size={20} style={{ color: '#10b981' }} />
+        <span style={{ fontSize: '11px', color: 'white', fontWeight: '600', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>Tap to change</span>
+      </div>
+    ) : (
+      <>
+        <Camera size={24} style={{ color: '#1e3a8a', marginBottom: '8px' }} />
+        <div style={{ fontSize: '13px', fontWeight: '700', color: '#1e3a8a', marginBottom: '2px' }}>Full Body *</div>
+        <div style={{ fontSize: '11px', color: '#94a3b8' }}>Full presence</div>
+      </>
+    )}
+  </div>
 
+  {/* 3. HOBBY PHOTO */}
+  <input type="file" id="upload-hobby" hidden accept="image/*"
+    onChange={(e) => handleUpload(e, 'photo_hobby')} disabled={uploadingPhoto} />
+  <div
+    onClick={() => !uploadingPhoto && triggerFileInput('upload-hobby')}
+    style={{
+      background: formData.photo_hobby
+        ? `linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url(${formData.photo_hobby}) center/cover`
+        : 'white',
+      border: formData.photo_hobby ? '2px solid #10b981' : '2px dashed rgba(30, 58, 138, 0.2)',
+      borderRadius: '16px',
+      aspectRatio: '1',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      cursor: uploadingPhoto ? 'not-allowed' : 'pointer',
+      transition: 'all 0.2s',
+      overflow: 'hidden',
+      padding: '12px',
+      textAlign: 'center'
+    }}
+    onMouseEnter={(e) => { if (!uploadingPhoto) e.currentTarget.style.borderColor = formData.photo_hobby ? '#10b981' : '#1e3a8a'; }}
+    onMouseLeave={(e) => { e.currentTarget.style.borderColor = formData.photo_hobby ? '#10b981' : 'rgba(30, 58, 138, 0.2)'; }}
+  >
+    {uploadingPhoto ? (
+      <Loader2 size={24} style={{ color: '#1e3a8a', animation: 'spin 1s linear infinite' }} />
+    ) : formData.photo_hobby ? (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+        <CheckCircle2 size={20} style={{ color: '#10b981' }} />
+        <span style={{ fontSize: '11px', color: 'white', fontWeight: '600', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>Tap to change</span>
+      </div>
+    ) : (
+      <>
+        <Camera size={24} style={{ color: '#1e3a8a', marginBottom: '8px' }} />
+        <div style={{ fontSize: '13px', fontWeight: '700', color: '#1e3a8a', marginBottom: '2px' }}>Hobby/Lifestyle</div>
+        <div style={{ fontSize: '11px', color: '#94a3b8' }}>Optional</div>
+      </>
+    )}
+  </div>
+
+  {/* 4. GENERAL PHOTO */}
+  <input type="file" id="upload-general" hidden accept="image/*"
+    onChange={(e) => handleUpload(e, 'photo_general')} disabled={uploadingPhoto} />
+  <div
+    onClick={() => !uploadingPhoto && triggerFileInput('upload-general')}
+    style={{
+      background: formData.photo_general
+        ? `linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url(${formData.photo_general}) center/cover`
+        : 'white',
+      border: formData.photo_general ? '2px solid #10b981' : '2px dashed rgba(30, 58, 138, 0.2)',
+      borderRadius: '16px',
+      aspectRatio: '1',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      cursor: uploadingPhoto ? 'not-allowed' : 'pointer',
+      transition: 'all 0.2s',
+      overflow: 'hidden',
+      padding: '12px',
+      textAlign: 'center'
+    }}
+    onMouseEnter={(e) => { if (!uploadingPhoto) e.currentTarget.style.borderColor = formData.photo_general ? '#10b981' : '#1e3a8a'; }}
+    onMouseLeave={(e) => { e.currentTarget.style.borderColor = formData.photo_general ? '#10b981' : 'rgba(30, 58, 138, 0.2)'; }}
+  >
+    {uploadingPhoto ? (
+      <Loader2 size={24} style={{ color: '#1e3a8a', animation: 'spin 1s linear infinite' }} />
+    ) : formData.photo_general ? (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+        <CheckCircle2 size={20} style={{ color: '#10b981' }} />
+        <span style={{ fontSize: '11px', color: 'white', fontWeight: '600', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>Tap to change</span>
+      </div>
+    ) : (
+      <>
+        <Camera size={24} style={{ color: '#1e3a8a', marginBottom: '8px' }} />
+        <div style={{ fontSize: '13px', fontWeight: '700', color: '#1e3a8a', marginBottom: '2px' }}>General</div>
+        <div style={{ fontSize: '11px', color: '#94a3b8' }}>Any vibe photo</div>
+      </>
+    )}
+  </div>
+
+</div>
               <p style={{ fontSize: '12px', color: '#94a3b8', textAlign: 'center', marginBottom: '20px' }}>
                 Max 5MB per photo • JPG, PNG, WEBP supported
               </p>
