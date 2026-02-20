@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
-import { Zap, Loader2, Send, Camera, X, CheckCircle2 } from "lucide-react";
+import { Zap, Loader2, Send, Camera, X, CheckCircle2, Bell } from "lucide-react";
 import FeedCard from "@/components/FeedCard";
 import { SlotPaywall, GoldUpsell } from "@/components/InteractionModals";
 
@@ -29,7 +29,6 @@ interface FeedPost {
   };
 }
 
-// ── Toast ──────────────────────────────────────────────────────────────────────
 function Toast({ message, onDone }: { message: string; onDone: () => void }) {
   useEffect(() => {
     const t = setTimeout(onDone, 3000);
@@ -60,8 +59,9 @@ export default function Home() {
   const [connectedUserIds, setConnectedUserIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
-  const [userProfile, setUserProfile] = useState<any>(null); // ✅ FIX 3 — stores avatar_url
+  const [userProfile, setUserProfile] = useState<any>(null);
   const [slotsLeft, setSlotsLeft] = useState<number>(0);
+  const [unreadCount, setUnreadCount] = useState<number>(0); // 🔔 live badge count
 
   const [newPostContent, setNewPostContent] = useState("");
   const [isPosting, setIsPosting] = useState(false);
@@ -74,7 +74,7 @@ export default function Home() {
   const [showGoldUpsell, setShowGoldUpsell] = useState(false);
   const [targetUserId, setTargetUserId] = useState<string | null>(null);
 
-  const [toast, setToast] = useState<string | null>(null); // ✅ FIX 2.1
+  const [toast, setToast] = useState<string | null>(null);
 
   // ── Fetch feed ─────────────────────────────────────────────────────────────
   const fetchFeed = async () => {
@@ -106,14 +106,25 @@ export default function Home() {
     setLoading(false);
   };
 
+  // ── Fetch unread count ─────────────────────────────────────────────────────
+  const fetchUnreadCount = useCallback(async (userId: string) => {
+    const { count } = await supabase
+      .from("notifications")
+      .select("*", { count: "exact", head: true })
+      .eq("receiver_id", userId)
+      .eq("is_read", false);
+    setUnreadCount(count || 0);
+  }, []);
+
   // ── Init ───────────────────────────────────────────────────────────────────
   useEffect(() => {
+    let realtimeChannel: any = null;
+
     const init = async () => {
       const { data: authData } = await supabase.auth.getUser();
       const currentUser = authData?.user;
       if (!currentUser) { router.replace("/login"); return; }
 
-      // ✅ FIX 3 — also fetch avatar_url for compose box
       const { data: profile } = await supabase
         .from("profiles")
         .select("active_slots, max_slots, avatar_url, full_name")
@@ -136,10 +147,48 @@ export default function Home() {
         setConnectedUserIds(new Set(connections.map((c: any) => c.receiver_id)));
       }
 
+      // Initial unread count
+      await fetchUnreadCount(currentUser.id);
+
+      // 🔔 Real-time subscription — fires on every new notification for this user
+      realtimeChannel = supabase
+        .channel("notifications-feed")
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "notifications",
+            filter: `receiver_id=eq.${currentUser.id}`,
+          },
+          () => {
+            fetchUnreadCount(currentUser.id);
+          }
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "notifications",
+            filter: `receiver_id=eq.${currentUser.id}`,
+          },
+          () => {
+            fetchUnreadCount(currentUser.id);
+          }
+        )
+        .subscribe();
+
       await fetchFeed();
     };
+
     init();
-  }, [router]);
+
+    // Cleanup subscription on unmount
+    return () => {
+      if (realtimeChannel) supabase.removeChannel(realtimeChannel);
+    };
+  }, [router, fetchUnreadCount]);
 
   // ── Photo select ───────────────────────────────────────────────────────────
   const handlePhotoSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -190,8 +239,8 @@ export default function Home() {
         setNewPostContent("");
         setPhotoFile(null);
         setPhotoPreview(null);
-        setToast(mediaUrl ? "Photo posted!" : "Post shared!"); // ✅ FIX 2.1
-        await fetchFeed(); // ✅ FIX 2.2 — own post now visible (SQL fixed)
+        setToast(mediaUrl ? "Photo posted!" : "Post shared!");
+        await fetchFeed();
       } else {
         alert('Failed to create post: ' + error.message);
       }
@@ -241,7 +290,6 @@ export default function Home() {
     setLoading(false);
   };
 
-  // ✅ FIX 3 — real avatar with DiceBear fallback
   const composeAvatarSrc = userProfile?.avatar_url
     || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.id}`;
 
@@ -278,6 +326,7 @@ export default function Home() {
         boxShadow: '0 4px 16px rgba(31, 41, 55, 0.08)', padding: '16px 20px',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center'
       }}>
+        {/* Logo */}
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 100" width="80" height="auto">
           <g>
             <path fill="#1E3A8A" d="M10,30 Q10,28 12,28 L22,28 Q24,28 24.5,30 L34,68 L43.5,30 Q44,28 46,28 L54,28 Q56,28 56.5,30 L66,68 L75.5,30 Q76,28 78,28 L88,28 Q90,28 90,30 L80,78 Q79,82 75,82 L65,82 Q61,82 60,78 L50,42 L40,78 Q39,82 35,82 L25,82 Q21,82 20,78 Z" />
@@ -287,18 +336,87 @@ export default function Home() {
           </g>
         </svg>
 
-        <div onClick={() => router.push('/wallet')} style={{
-          background: 'linear-gradient(135deg, rgba(30, 58, 138, 0.1) 0%, rgba(99, 102, 241, 0.1) 100%)',
-          color: '#1E3A8A', padding: '8px 16px', borderRadius: '12px', fontSize: '13px',
-          fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px',
-          border: '1px solid rgba(30, 58, 138, 0.2)', boxShadow: '0 2px 8px rgba(30, 58, 138, 0.1)',
-          cursor: 'pointer', transition: 'all 0.2s ease'
-        }}
-          onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(30, 58, 138, 0.15)'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(30, 58, 138, 0.1)'; }}
-        >
-          <Zap size={14} style={{ color: '#1E3A8A' }} />
-          {slotsLeft} {slotsLeft === 1 ? 'Slot' : 'Slots'}
+        {/* Right side: Bell + Slots */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+
+          {/* 🔔 Bell Icon with unread badge */}
+          <div
+            onClick={() => router.push('/notifications')}
+            style={{
+              position: 'relative',
+              width: '40px',
+              height: '40px',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              background: unreadCount > 0
+                ? 'rgba(99, 102, 241, 0.08)'
+                : 'rgba(241, 245, 249, 0.6)',
+              border: unreadCount > 0
+                ? '1px solid rgba(99, 102, 241, 0.2)'
+                : '1px solid rgba(226, 232, 240, 0.6)',
+              transition: 'all 0.2s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(99, 102, 241, 0.12)';
+              e.currentTarget.style.transform = 'scale(1.05)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = unreadCount > 0
+                ? 'rgba(99, 102, 241, 0.08)'
+                : 'rgba(241, 245, 249, 0.6)';
+              e.currentTarget.style.transform = 'scale(1)';
+            }}
+          >
+            <Bell
+              size={18}
+              style={{
+                color: unreadCount > 0 ? '#6366f1' : '#94a3b8',
+                transition: 'color 0.2s'
+              }}
+            />
+            {/* Unread badge */}
+            {unreadCount > 0 && (
+              <div style={{
+                position: 'absolute',
+                top: '4px',
+                right: '4px',
+                minWidth: '16px',
+                height: '16px',
+                background: '#ef4444',
+                borderRadius: '8px',
+                fontSize: '9px',
+                fontWeight: '800',
+                color: 'white',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '0 3px',
+                boxShadow: '0 0 0 2px white',
+                animation: 'badgePop 0.3s ease',
+                lineHeight: 1,
+              }}>
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </div>
+            )}
+          </div>
+
+          {/* Slots button */}
+          <div onClick={() => router.push('/wallet')} style={{
+            background: 'linear-gradient(135deg, rgba(30, 58, 138, 0.1) 0%, rgba(99, 102, 241, 0.1) 100%)',
+            color: '#1E3A8A', padding: '8px 16px', borderRadius: '12px', fontSize: '13px',
+            fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px',
+            border: '1px solid rgba(30, 58, 138, 0.2)', boxShadow: '0 2px 8px rgba(30, 58, 138, 0.1)',
+            cursor: 'pointer', transition: 'all 0.2s ease'
+          }}
+            onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(30, 58, 138, 0.15)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(30, 58, 138, 0.1)'; }}
+          >
+            <Zap size={14} style={{ color: '#1E3A8A' }} />
+            {slotsLeft} {slotsLeft === 1 ? 'Slot' : 'Slots'}
+          </div>
         </div>
       </header>
 
@@ -313,7 +431,6 @@ export default function Home() {
             boxShadow: '0 8px 32px rgba(31, 41, 55, 0.1)', marginBottom: '24px'
           }}>
             <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
-              {/* ✅ FIX 3 — real photo */}
               <div style={{
                 width: '48px', height: '48px', borderRadius: '50%',
                 background: '#f1f5f9', overflow: 'hidden', flexShrink: 0,
@@ -443,6 +560,11 @@ export default function Home() {
         @keyframes slideUp {
           from { opacity: 0; transform: translateX(-50%) translateY(16px); }
           to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+        @keyframes badgePop {
+          0%   { transform: scale(0); opacity: 0; }
+          70%  { transform: scale(1.2); }
+          100% { transform: scale(1); opacity: 1; }
         }
       `}</style>
     </main>
