@@ -46,7 +46,7 @@ const RELIGIONS = ["Hindu", "Muslim", "Christian", "Sikh", "Buddhist", "Jain", "
 const LANGUAGES = ["Hindi", "English", "Tamil", "Telugu", "Marathi", "Gujarati", "Bengali", "Kannada", "Malayalam", "Punjabi", "Urdu", "Other"];
 const DIET_OPTIONS = ["Vegetarian", "Non-Vegetarian", "Vegan", "Eggetarian"];
 const DRINK_OPTIONS = ["Yes", "No", "Occasionally"];
-const SMOKE_OPTIONS = ["Yes", "No", "Never"];
+const SMOKE_OPTIONS = ["Yes", "No", "Occasionally"];
 
 // Max file size: 5MB
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
@@ -504,7 +504,16 @@ export default function Onboarding() {
 
   // Validation helpers
   const isStep1Valid = formData.intent !== "";
-  const isStep2Valid = formData.full_name && formData.phone_number && formData.city && formData.gender && formData.date_of_birth;
+  const getAge = (dob: string) => {
+    if (!dob) return 0;
+    const today = new Date();
+    const birth = new Date(dob);
+    let age = today.getFullYear() - birth.getFullYear();
+    const m = today.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+    return age;
+  };
+  const isStep2Valid = formData.full_name && formData.phone_number.length === 10 && formData.city && formData.gender && formData.date_of_birth && getAge(formData.date_of_birth) >= 16;
   const isStep3Valid = formData.job_title && formData.company;
   const isStep4Valid = formData.bio && formData.bio.length >= 5;
   const isStep5Valid = formData.photo_face && formData.photo_body; // Mandatory photos
@@ -2789,27 +2798,25 @@ export default function Onboarding() {
                 </div>
 
                 {/* Location Preference */}
-                <div>
-                  <label style={labelStyle}>
-                    <Navigation size={14} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'middle' }}/>
-                    Location Preference *
-                  </label>
-                  <input 
-                    value={formData.location_preference}
-                    onChange={e => setFormData({...formData, location_preference: e.target.value})}
-                    style={inputStyle}
-                    placeholder='e.g., "Mumbai" or "Anywhere"'
-                    onFocus={(e) => {
-                      e.currentTarget.style.borderColor = 'rgba(30, 58, 138, 0.5)';
-                      e.currentTarget.style.boxShadow = '0 0 0 3px rgba(30, 58, 138, 0.1)';
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.borderColor = 'rgba(30, 58, 138, 0.2)';
-                      e.currentTarget.style.boxShadow = 'none';
-                    }}
-                  />
-                </div>
-
+                <div style={{ position: 'relative' }}>
+  <MapPin size={18} style={{ 
+    position: 'absolute', left: '14px', top: '50%', 
+    transform: 'translateY(-50%)', color: '#64748b', zIndex: 1
+  }}/>
+  <input
+    value={formData.location_preference}
+    onChange={e => {
+      setFormData({...formData, location_preference: e.target.value});
+    }}
+    style={{ ...inputStyle, paddingLeft: '42px' }}
+    placeholder="Search city or type Anywhere..."
+    list="location-cities"
+  />
+  <datalist id="location-cities">
+    <option value="Anywhere" />
+    {CITIES.map(c => <option key={c} value={c} />)}
+  </datalist>
+</div>
                 {/* Open to Relocate */}
                 <div style={{
                   background: 'white',

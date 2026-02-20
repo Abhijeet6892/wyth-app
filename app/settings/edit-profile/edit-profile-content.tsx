@@ -56,7 +56,7 @@ const RELIGIONS = ["Hindu", "Muslim", "Christian", "Sikh", "Buddhist", "Jain", "
 const LANGUAGES = ["Hindi", "English", "Tamil", "Telugu", "Marathi", "Gujarati", "Bengali", "Kannada", "Malayalam", "Punjabi", "Urdu", "Other"];
 const DIET_OPTIONS = ["Vegetarian", "Non-Vegetarian", "Vegan", "Eggetarian"];
 const DRINK_OPTIONS = ["Yes", "No", "Occasionally"];
-const SMOKE_OPTIONS = ["Yes", "No", "Never"];
+const SMOKE_OPTIONS = ["Yes", "No", "Occasionally"];
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
@@ -892,22 +892,74 @@ export default function EditProfileContent() {
                   </div>
                 </div>
 
-                <InputField
-                  label="Date of Birth *"
-                  icon={<Calendar size={16} style={{ color: '#1e3a8a' }} />}
-                  type="date"
-                  value={formData.date_of_birth}
-                  onChange={(e) => setFormData({...formData, date_of_birth: e.target.value})}
-                />
+                <div style={{ marginTop: '16px' }}>
+  <label style={{
+    fontSize: '12px', fontWeight: '600', color: '#64748b',
+    textTransform: 'uppercase', letterSpacing: '0.5px',
+    marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px'
+  }}>
+    <Calendar size={16} style={{ color: '#1e3a8a' }} />
+    Date of Birth *
+  </label>
+  <input
+    type="date"
+    value={formData.date_of_birth}
+    onChange={(e) => {
+      const dob = e.target.value;
+      if (dob) {
+        const today = new Date();
+        const birth = new Date(dob);
+        let age = today.getFullYear() - birth.getFullYear();
+        const m = today.getMonth() - birth.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+        if (age < 16) {
+          alert('You must be at least 16 years old to use Wyth.');
+          return;
+        }
+      }
+      setFormData({...formData, date_of_birth: dob});
+    }}
+    style={{
+      width: '100%', padding: '14px 16px', borderRadius: '12px',
+      border: '1.5px solid rgba(30, 58, 138, 0.2)', backgroundColor: 'white',
+      fontSize: '15px', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box'
+    }}
+  />
+</div>
 
-                <InputField
-                  label="Phone Number"
-                  icon={<Phone size={16} style={{ color: '#1e3a8a' }} />}
-                  value={formData.phone}
-                  onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                  placeholder="+91 98765 43210"
-                />
-
+<div style={{ marginTop: '16px' }}>
+  <label style={{
+    fontSize: '12px', fontWeight: '600', color: '#64748b',
+    textTransform: 'uppercase', letterSpacing: '0.5px',
+    marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px'
+  }}>
+    <Phone size={16} style={{ color: '#1e3a8a' }} />
+    Phone Number
+  </label>
+  <input
+    type="text"
+    value={formData.phone}
+    disabled
+    style={{
+      width: '100%', padding: '14px 16px', borderRadius: '12px',
+      border: '1.5px solid rgba(226, 232, 240, 0.8)',
+      backgroundColor: 'rgba(241, 245, 249, 0.8)', fontSize: '15px',
+      outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
+      color: '#94a3b8', cursor: 'not-allowed'
+    }}
+  />
+  <div style={{
+    display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px',
+    padding: '6px 10px', background: 'rgba(245, 158, 11, 0.08)',
+    border: '1px solid rgba(245, 158, 11, 0.2)', borderRadius: '8px',
+    width: 'fit-content'
+  }}>
+    <Lock size={11} style={{ color: '#d97706' }} />
+    <span style={{ fontSize: '11px', color: '#92400e', fontWeight: '500' }}>
+      Phone changes require OTP verification — coming soon
+    </span>
+  </div>
+</div>
                 <div style={{ marginTop: '16px', position: 'relative' }}>
                   <label style={{
                     fontSize: '12px',
@@ -1678,13 +1730,37 @@ export default function EditProfileContent() {
                   </div>
                 </div>
 
-                <InputField
-                  label="Location Preference *"
-                  icon={<Navigation size={16} style={{ color: '#1e3a8a' }} />}
-                  value={formData.location_preference}
-                  onChange={(e) => setFormData({...formData, location_preference: e.target.value})}
-                  placeholder='e.g., "Mumbai" or "Anywhere"'
-                />
+                <div style={{ marginTop: '16px' }}>
+  <label style={{
+    fontSize: '12px', fontWeight: '600', color: '#64748b',
+    textTransform: 'uppercase', letterSpacing: '0.5px',
+    marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px'
+  }}>
+    <Navigation size={16} style={{ color: '#1e3a8a' }} />
+    Location Preference *
+  </label>
+  <div style={{ position: 'relative' }}>
+    <MapPin size={18} style={{
+      position: 'absolute', left: '14px', top: '50%',
+      transform: 'translateY(-50%)', color: '#64748b', zIndex: 1
+    }}/>
+    <input
+      value={formData.location_preference}
+      onChange={(e) => setFormData({...formData, location_preference: e.target.value})}
+      style={{
+        width: '100%', padding: '14px 16px 14px 42px', borderRadius: '12px',
+        border: '1.5px solid rgba(30, 58, 138, 0.2)', backgroundColor: 'white',
+        fontSize: '15px', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box'
+      }}
+      placeholder="Search city or type Anywhere..."
+      list="edit-location-cities"
+    />
+    <datalist id="edit-location-cities">
+      <option value="Anywhere" />
+      {CITIES.map(c => <option key={c} value={c} />)}
+    </datalist>
+  </div>
+</div>
 
                 <div style={{
                   background: 'white',
