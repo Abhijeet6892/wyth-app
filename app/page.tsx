@@ -528,10 +528,11 @@ export default function Home() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             {posts.map((post) => (
               <FeedCard
-                key={post.id}
-                post={post}
-                isConnected={connectedUserIds.has(post.profiles.id)}
-                onConnect={(mode) => {
+              key={post.id}
+              post={post}
+              isConnected={connectedUserIds.has(post.profiles.id)}
+              isOwnPost={post.profiles.id === user?.id}
+              onConnect={(mode) => {
                   if (mode === "message") { router.push(`/chat?open=${post.profiles.id}`); return; }
                   setTargetUserId(post.profiles.id);
                   if (slotsLeft <= 0) { setShowPaywall(true); setPaywallMode("connect"); }

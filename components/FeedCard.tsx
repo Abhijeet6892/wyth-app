@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from 'next/navigation';
 import VerificationBadge from './VerificationBadge';
 import SocialVerificationBadges from './SocialVerificationBadges';
 import { useState } from "react";
@@ -49,6 +50,7 @@ interface FeedPost {
 interface FeedCardProps {
   post: FeedPost;
   isConnected?: boolean;
+  isOwnPost?: boolean;  // ADD THIS
   onConnect: (mode?: "connect" | "message") => void;
   onSocialUnlock: () => void;
   onComment: () => void;
@@ -57,13 +59,14 @@ interface FeedCardProps {
 export default function FeedCard({
   post,
   isConnected = false,
+  isOwnPost = false,
   onConnect,
   onSocialUnlock,
   onComment,
 }: FeedCardProps) {
+  const router = useRouter();
   const [showReactionDock, setShowReactionDock] = useState(false);
   const [reactionType, setReactionType] = useState<string | null>(null);
-
   const profile = post.profiles || { full_name: "Unknown User" };
   const isCommitted = profile.relationship_status === "paired";
 
@@ -669,8 +672,28 @@ export default function FeedCard({
           </button>
         </div>
 
-        {/* CTA Logic */}
-        {isConnected ? (
+{/* CTA Logic */}
+{isOwnPost ? (
+          <button
+            onClick={() => router.push('/profile')}
+            style={{
+              padding: '10px 24px',
+              background: '#f1f5f9',
+              color: '#1e3a8a',
+              borderRadius: '50px',
+              fontWeight: '700',
+              fontSize: '14px',
+              border: 'none',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              fontFamily: 'inherit'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.background = '#e2e8f0'}
+            onMouseLeave={(e) => e.currentTarget.style.background = '#f1f5f9'}
+          >
+            View Profile
+          </button>
+        ) : isConnected ? (
           <button
             onClick={() => onConnect("message")}
             style={{
