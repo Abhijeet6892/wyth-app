@@ -849,13 +849,35 @@ export default function EditProfileContent() {
               <GlassCard>
                 <SectionTitle>Basic Information</SectionTitle>
                 
-                <InputField
-                  label="Full Name *"
-                  icon={<User size={16} style={{ color: '#1e3a8a' }} />}
-                  value={formData.full_name}
-                  onChange={(e) => setFormData({...formData, full_name: e.target.value})}
-                  placeholder="e.g. Abhijeet Bhattacharya"
-                />
+                <div style={{ marginTop: '16px' }}>
+  <label style={{
+    fontSize: '12px', fontWeight: '600', color: '#64748b',
+    textTransform: 'uppercase', letterSpacing: '0.5px',
+    marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px'
+  }}>
+    <User size={16} style={{ color: '#1e3a8a' }} />
+    Full Name *
+  </label>
+  <input
+    type="text"
+    value={formData.full_name}
+    onChange={(e) => {
+      const val = e.target.value;
+      if (/^[a-zA-Z\s]*$/.test(val)) {
+        setFormData({ ...formData, full_name: val });
+      }
+    }}
+    placeholder="e.g. Abhijeet Bhattacharya"
+    style={{
+      width: '100%', padding: '14px 16px', borderRadius: '12px',
+      border: '1.5px solid rgba(30, 58, 138, 0.2)', backgroundColor: 'white',
+      fontSize: '15px', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box'
+    }}
+  />
+  <p style={{ fontSize: '11px', color: '#94a3b8', marginTop: '6px' }}>
+    Only letters and spaces allowed
+  </p>
+</div>
 
                 <div style={{ marginTop: '16px' }}>
                   <label style={{
@@ -893,38 +915,37 @@ export default function EditProfileContent() {
                 </div>
 
                 <div style={{ marginTop: '16px' }}>
-  <label style={{
-    fontSize: '12px', fontWeight: '600', color: '#64748b',
-    textTransform: 'uppercase', letterSpacing: '0.5px',
-    marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px'
-  }}>
-    <Calendar size={16} style={{ color: '#1e3a8a' }} />
-    Date of Birth *
-  </label>
-  <input
-    type="date"
-    value={formData.date_of_birth}
-    onChange={(e) => {
-      const dob = e.target.value;
-      if (dob) {
-        const today = new Date();
-        const birth = new Date(dob);
-        let age = today.getFullYear() - birth.getFullYear();
-        const m = today.getMonth() - birth.getMonth();
-        if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
-        if (age < 16) {
-          alert('You must be at least 16 years old to use Wyth.');
-          return;
-        }
-      }
-      setFormData({...formData, date_of_birth: dob});
-    }}
-    style={{
-      width: '100%', padding: '14px 16px', borderRadius: '12px',
-      border: '1.5px solid rgba(30, 58, 138, 0.2)', backgroundColor: 'white',
-      fontSize: '15px', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box'
-    }}
-  />
+                <label style={{
+                  fontSize: '12px', fontWeight: '600', color: '#64748b',
+                  textTransform: 'uppercase', letterSpacing: '0.5px',
+                  marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px'
+                }}>
+                <Calendar size={16} style={{ color: '#1e3a8a' }} />
+                Date of Birth *
+              </label>
+              <input
+              type="date"
+              value={formData.date_of_birth}
+              disabled
+              style={{
+                width: '100%', padding: '14px 16px', borderRadius: '12px',
+                border: '1.5px solid rgba(226, 232, 240, 0.8)',
+                backgroundColor: 'rgba(241, 245, 249, 0.8)', fontSize: '15px',
+                outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
+                color: '#94a3b8', cursor: 'not-allowed'
+              }}
+            />
+<div style={{
+  display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px',
+  padding: '6px 10px', background: 'rgba(245, 158, 11, 0.08)',
+  border: '1px solid rgba(245, 158, 11, 0.2)', borderRadius: '8px',
+  width: 'fit-content'
+}}>
+  <Lock size={11} style={{ color: '#d97706' }} />
+  <span style={{ fontSize: '11px', color: '#92400e', fontWeight: '500' }}>
+    Date of birth cannot be changed after registration
+  </span>
+</div>
 </div>
 
 <div style={{ marginTop: '16px' }}>

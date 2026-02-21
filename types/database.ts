@@ -16,8 +16,6 @@ export interface Database {
           full_name: string | null
           bio: string | null
           avatar_url: string | null
-          used_slots: number
-          total_slots: number
           created_at: string
           updated_at: string
         }
@@ -27,8 +25,6 @@ export interface Database {
           full_name?: string | null
           bio?: string | null
           avatar_url?: string | null
-          used_slots?: number
-          total_slots?: number
           created_at?: string
           updated_at?: string
         }
@@ -38,8 +34,6 @@ export interface Database {
           full_name?: string | null
           bio?: string | null
           avatar_url?: string | null
-          used_slots?: number
-          total_slots?: number
           created_at?: string
           updated_at?: string
         }

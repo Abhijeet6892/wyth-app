@@ -13,11 +13,32 @@ export default function LoginPage() {
   const [isSignUp, setIsSignUp] = useState(false)
   
   const router = useRouter()
+  const searchParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '')
+  const justDeleted = searchParams.get('deleted') === 'true'
 
   useEffect(() => {
     const check = async () => {
       const { data: { session } } = await supabase.auth.getSession()
-      if (session) router.replace('/')
+      if (!session) return
+  
+      // Check if returning user has a soft deleted account
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_deleted, deletion_grace_until, deleted_by')
+        .eq('id', session.user.id)
+        .maybeSingle()
+  
+      if (profile?.is_deleted) {
+        if (profile.deleted_by === 'admin') {
+          router.replace('/banned')
+        } else if (profile.deletion_grace_until && new Date(profile.deletion_grace_until) > new Date()) {
+          router.replace('/recover-account')
+        } else {
+          router.replace('/account-not-found')
+        }
+      } else {
+        router.replace('/')
+      }
     }
     check()
   }, [router])
@@ -44,15 +65,37 @@ export default function LoginPage() {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password })
         if (error) throw error
         if (data.user) {
-          const { data: profile } = await supabase.from('profiles').select('id').eq('id', data.user.id).maybeSingle()
-          router.push(profile ? '/' : '/onboarding')
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('id, is_deleted, deletion_grace_until, deleted_by')
+            .eq('id', data.user.id)
+            .maybeSingle()
+  
+          if (!profile) {
+            router.push('/onboarding')
+            return
+          }
+  
+          if (profile.is_deleted) {
+            if (profile.deleted_by === 'admin') {
+              router.push('/banned')
+            } else if (profile.deletion_grace_until && new Date(profile.deletion_grace_until) > new Date()) {
+              router.push('/recover-account')
+            } else {
+              router.push('/account-not-found')
+            }
+          } else {
+            router.push('/')
+          }
         }
       }
     } catch (error: any) {
-      setErrorMsg(error.message); setLoading(false);
+      setErrorMsg(error.message)
+      setLoading(false)
     }
   }
 
+  
   // === PREMIUM GLASSMORPHISM STYLES ===
   const containerStyle: React.CSSProperties = {
     minHeight: '100dvh',
@@ -271,6 +314,26 @@ export default function LoginPage() {
           </p>
         </div>
       </div>
+      {justDeleted && (
+  <div style={{
+    width: '100%',
+    maxWidth: '420px',
+    padding: '16px',
+    borderRadius: '12px',
+    backgroundColor: 'rgba(99, 102, 241, 0.08)',
+    border: '1px solid rgba(99, 102, 241, 0.2)',
+    marginBottom: '16px',
+    zIndex: 10,
+    textAlign: 'center'
+  }}>
+    <p style={{ color: '#4f46e5', fontSize: '14px', margin: 0, fontWeight: '500' }}>
+      Your account has been scheduled for deletion.
+    </p>
+    <p style={{ color: '#64748b', fontSize: '13px', margin: '4px 0 0', }}>
+      You have 30 days to recover it by logging back in.
+    </p>
+  </div>
+)}
 
       {/* Glassmorphism Form Card */}
       <div style={glassCardStyle}>
