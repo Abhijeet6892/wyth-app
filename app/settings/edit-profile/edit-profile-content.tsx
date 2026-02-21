@@ -35,6 +35,7 @@ import {
   Instagram,
   AlertTriangle,
   X,
+  Trash2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { generateBioAction, type BioTone } from "@/app/actions/generateBio";// Constants
@@ -89,6 +90,9 @@ export default function EditProfileContent() {
   const [pendingIntent, setPendingIntent] = useState<string | null>(null);
   const [missingIntentFields, setMissingIntentFields] = useState<string[]>([]);
   const [missingIntentSections, setMissingIntentSections] = useState<SectionType[]>([]);
+
+  // FIX 1.1 - LinkedIn validation error state
+  const [linkedinError, setLinkedinError] = useState("");
 
   // Form State - Complete Profile
   const [formData, setFormData] = useState({
@@ -346,6 +350,20 @@ export default function EditProfileContent() {
     }
   };
 
+  // FIX 4 - Photo Delete Handler
+  const handleDeletePhoto = (field: 'photo_face' | 'photo_body' | 'photo_hobby' | 'photo_general') => {
+    setFormData(prev => ({ ...prev, [field]: "" }));
+    // Reset the file input so the same file can be re-uploaded if needed
+    const inputMap: Record<string, string> = {
+      photo_face: 'upload-face',
+      photo_body: 'upload-body',
+      photo_hobby: 'upload-hobby',
+      photo_general: 'upload-general',
+    };
+    const inputEl = document.getElementById(inputMap[field]) as HTMLInputElement | null;
+    if (inputEl) inputEl.value = "";
+  };
+
   const triggerFileInput = (id: string) => {
     document.getElementById(id)?.click();
   };
@@ -370,10 +388,8 @@ export default function EditProfileContent() {
   
     setGeneratingBio(true);
     try {
-      // ✅ ONLY CHANGE: Pass intent instead of selectedTone
       const result = await generateBioAction(formData.bio, formData.intent);
       
-      // ✅ ONLY CHANGE: Handle the object return
       if (result?.success && result.bio) {
         setFormData(prev => ({ ...prev, bio: result.bio }));
       }
@@ -383,7 +399,36 @@ export default function EditProfileContent() {
     setGeneratingBio(false);
   };
 
+  // FIX 1.2 - Instagram: enforce @ prefix on change
+  const handleInstagramChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let val = e.target.value;
+    // If user clears the field, allow empty
+    if (val === "") {
+      setFormData({...formData, instagram_handle: ""});
+      return;
+    }
+    // Ensure it always starts with @
+    if (!val.startsWith("@")) {
+      val = "@" + val.replace(/^@+/, "");
+    }
+    setFormData({...formData, instagram_handle: val});
+  };
+
+  // FIX 1.1 - LinkedIn: validate on save
+  const validateLinkedin = (url: string): boolean => {
+    if (!url) return true; // optional field, empty is fine
+    return url.startsWith("https://");
+  };
+
   const handleSave = async () => {
+    // FIX 1.1 - Validate LinkedIn before saving
+    if (formData.linkedin_url && !validateLinkedin(formData.linkedin_url)) {
+      setLinkedinError("LinkedIn URL must start with https://");
+      setActiveSection('social');
+      return;
+    }
+    setLinkedinError("");
+
     setSaving(true);
     if (!user) return;
 
@@ -407,8 +452,8 @@ export default function EditProfileContent() {
         hometown: formData.hometown,
         family_type: formData.family_type,
         values: formData.values,
-        horoscope: formData.horoscope, // ✅ ADDED THIS LINE
-        family_income: formData.family_income, // ✅ ADDED THIS LINE
+        horoscope: formData.horoscope,
+        family_income: formData.family_income,
         religion: formData.religion,
         mother_tongue: formData.mother_tongue,
         about_family: formData.about_family,
@@ -1060,7 +1105,7 @@ export default function EditProfileContent() {
             </motion.div>
           )}
 
-          {/* PHOTOS SECTION */}
+          {/* PHOTOS SECTION — FIX 4: Delete buttons + 3 mandatory, 1 optional */}
           {activeSection === 'photos' && (
             <motion.div
               key="photos"
@@ -1088,45 +1133,79 @@ export default function EditProfileContent() {
     </div>
   )}
 
+  {/* Mandatory notice */}
+  <div style={{
+    padding: '10px 14px',
+    background: 'rgba(30, 58, 138, 0.06)',
+    border: '1px solid rgba(30, 58, 138, 0.15)',
+    borderRadius: '10px',
+    marginBottom: '16px',
+    fontSize: '12px',
+    color: '#1e3a8a',
+    fontWeight: '600',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px'
+  }}>
+    <CheckCircle2 size={14} style={{ color: '#10b981' }} />
+    Face, Body & Hobby photos are mandatory · General is optional
+  </div>
+
   <div style={{
     display: 'grid',
     gridTemplateColumns: '1fr 1fr',
     gap: '12px',
-    marginTop: '16px'
+    marginTop: '4px'
   }}>
     <input type="file" id="upload-face" hidden accept="image/*"
       onChange={(e) => handleUpload(e, 'photo_face')} disabled={uploadingPhoto} />
-    <PhotoUploadBox label="Face Close-up *" subtitle="No sunglasses"
+    <PhotoUploadBox
+      label="Face Close-up *" subtitle="No sunglasses"
       photoUrl={formData.photo_face} uploading={uploadingPhoto}
-      onClick={() => !uploadingPhoto && triggerFileInput('upload-face')} />
+      onClick={() => !uploadingPhoto && triggerFileInput('upload-face')}
+      onDelete={() => handleDeletePhoto('photo_face')}
+      mandatory
+    />
 
     <input type="file" id="upload-body" hidden accept="image/*"
       onChange={(e) => handleUpload(e, 'photo_body')} disabled={uploadingPhoto} />
-    <PhotoUploadBox label="Full Body *" subtitle="Full presence"
+    <PhotoUploadBox
+      label="Full Body *" subtitle="Full presence"
       photoUrl={formData.photo_body} uploading={uploadingPhoto}
-      onClick={() => !uploadingPhoto && triggerFileInput('upload-body')} />
+      onClick={() => !uploadingPhoto && triggerFileInput('upload-body')}
+      onDelete={() => handleDeletePhoto('photo_body')}
+      mandatory
+    />
 
     <input type="file" id="upload-hobby" hidden accept="image/*"
       onChange={(e) => handleUpload(e, 'photo_hobby')} disabled={uploadingPhoto} />
-    <PhotoUploadBox label="Hobby/Lifestyle" subtitle="Optional"
+    <PhotoUploadBox
+      label="Hobby/Lifestyle *" subtitle="Mandatory"
       photoUrl={formData.photo_hobby} uploading={uploadingPhoto}
-      onClick={() => !uploadingPhoto && triggerFileInput('upload-hobby')} />
+      onClick={() => !uploadingPhoto && triggerFileInput('upload-hobby')}
+      onDelete={() => handleDeletePhoto('photo_hobby')}
+      mandatory
+    />
 
     <input type="file" id="upload-general" hidden accept="image/*"
       onChange={(e) => handleUpload(e, 'photo_general')} disabled={uploadingPhoto} />
-    <PhotoUploadBox label="General" subtitle="Any vibe photo"
+    <PhotoUploadBox
+      label="General" subtitle="Optional"
       photoUrl={formData.photo_general} uploading={uploadingPhoto}
-      onClick={() => !uploadingPhoto && triggerFileInput('upload-general')} />
+      onClick={() => !uploadingPhoto && triggerFileInput('upload-general')}
+      onDelete={() => handleDeletePhoto('photo_general')}
+      mandatory={false}
+    />
   </div>
 
   <p style={{ fontSize: '12px', color: '#94a3b8', textAlign: 'center', marginTop: '16px' }}>
-    Max 5MB per photo • JPG, PNG, WEBP
+    Max 5MB per photo · JPG, PNG, WEBP
   </p>
 </GlassCard>
             </motion.div>
           )}
 
-          {/* BACKGROUND SECTION */}
+          {/* BACKGROUND SECTION — FIX 3: Hometown as dropdown only */}
 {activeSection === 'background' && (
   <motion.div
     key="background"
@@ -1138,8 +1217,8 @@ export default function EditProfileContent() {
     <GlassCard>
       <SectionTitle>Your Roots</SectionTitle>
       
-      {/* Hometown */}
-      <div style={{ marginTop: '16px', position: 'relative' }}>
+      {/* FIX 3 - Hometown: strict dropdown, no free-text */}
+      <div style={{ marginTop: '16px' }}>
         <label style={{
           fontSize: '12px',
           fontWeight: '600',
@@ -1147,70 +1226,47 @@ export default function EditProfileContent() {
           textTransform: 'uppercase',
           letterSpacing: '0.5px',
           marginBottom: '8px',
-          display: 'block'
-        }}>Hometown *</label>
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px'
+        }}>
+          <Home size={14} style={{ color: '#1e3a8a' }} /> Hometown *
+        </label>
         <div style={{ position: 'relative' }}>
-          <Home size={18} style={{ 
-            position: 'absolute', 
-            left: '14px', 
-            top: '50%', 
-            transform: 'translateY(-50%)',
-            color: '#64748b'
+          <Home size={18} style={{
+            position: 'absolute', left: '14px', top: '50%',
+            transform: 'translateY(-50%)', color: '#64748b', pointerEvents: 'none', zIndex: 1
           }}/>
-          <input 
-            value={hometownSearch}
-            onFocus={() => setShowHometownDropdown(true)}
+          <select
+            value={formData.hometown}
             onChange={e => {
-              setHometownSearch(e.target.value);
               setFormData({...formData, hometown: e.target.value});
-              setShowHometownDropdown(true);
+              setHometownSearch(e.target.value);
             }}
             style={{
               width: '100%',
-              padding: '14px 42px 14px 42px',
+              padding: '14px 40px 14px 42px',
               borderRadius: '12px',
               border: '1.5px solid rgba(30, 58, 138, 0.2)',
               backgroundColor: 'white',
               fontSize: '15px',
               outline: 'none',
+              fontFamily: 'inherit',
+              cursor: 'pointer',
+              appearance: 'none',
+              backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
+              backgroundRepeat: 'no-repeat',
+              backgroundPosition: 'right 12px center',
+              backgroundSize: '20px',
               boxSizing: 'border-box',
-              fontFamily: 'inherit'
+              color: formData.hometown ? '#1e3a8a' : '#94a3b8',
             }}
-            placeholder="Where are your roots?"
-          />
-          {showHometownDropdown && hometownSearch.length > 0 && (
-            <div style={{
-              position: 'absolute',
-              top: '100%',
-              left: 0,
-              right: 0,
-              marginTop: '4px',
-              background: 'white',
-              borderRadius: '12px',
-              boxShadow: '0 8px 24px rgba(30, 58, 138, 0.15)',
-              border: '1px solid rgba(30, 58, 138, 0.1)',
-              maxHeight: '200px',
-              overflowY: 'auto',
-              zIndex: 50
-            }}>
-              {CITIES.filter(c => c.toLowerCase().includes(hometownSearch.toLowerCase())).map(city => (
-                <div 
-                  key={city} 
-                  onClick={() => handleHometownSelect(city)}
-                  style={{
-                    padding: '12px 16px',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    color: '#1e3a8a'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = '#f1f5f9'}
-                  onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
-                >
-                  {city}
-                </div>
-              ))}
-            </div>
-          )}
+          >
+            <option value="">Select your hometown</option>
+            {CITIES.map(city => (
+              <option key={city} value={city}>{city}</option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -1284,7 +1340,7 @@ export default function EditProfileContent() {
         </div>
       </div>
 
-      {/* Horoscope / Birth Sign - ADD HERE */}
+      {/* Horoscope / Birth Sign */}
       <div style={{ marginTop: '16px' }}>
         <label style={{
           fontSize: '12px',
@@ -1336,7 +1392,7 @@ export default function EditProfileContent() {
         </select>
       </div>
 
-      {/* Family Income - ADD HERE */}
+      {/* Family Income */}
       <div style={{ marginTop: '16px' }}>
         <label style={{
           fontSize: '12px',
@@ -1630,7 +1686,7 @@ export default function EditProfileContent() {
             </motion.div>
           )}
 
-          {/* PREFERENCES SECTION */}
+          {/* PREFERENCES SECTION — FIX 2: Location Preference as strict dropdown */}
           {activeSection === 'preferences' && (
             <motion.div
               key="preferences"
@@ -1751,37 +1807,51 @@ export default function EditProfileContent() {
                   </div>
                 </div>
 
+                {/* FIX 2 - Location Preference: strict dropdown from CITIES list + "Anywhere" */}
                 <div style={{ marginTop: '16px' }}>
-  <label style={{
-    fontSize: '12px', fontWeight: '600', color: '#64748b',
-    textTransform: 'uppercase', letterSpacing: '0.5px',
-    marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px'
-  }}>
-    <Navigation size={16} style={{ color: '#1e3a8a' }} />
-    Location Preference *
-  </label>
-  <div style={{ position: 'relative' }}>
-    <MapPin size={18} style={{
-      position: 'absolute', left: '14px', top: '50%',
-      transform: 'translateY(-50%)', color: '#64748b', zIndex: 1
-    }}/>
-    <input
-      value={formData.location_preference}
-      onChange={(e) => setFormData({...formData, location_preference: e.target.value})}
-      style={{
-        width: '100%', padding: '14px 16px 14px 42px', borderRadius: '12px',
-        border: '1.5px solid rgba(30, 58, 138, 0.2)', backgroundColor: 'white',
-        fontSize: '15px', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box'
-      }}
-      placeholder="Search city or type Anywhere..."
-      list="edit-location-cities"
-    />
-    <datalist id="edit-location-cities">
-      <option value="Anywhere" />
-      {CITIES.map(c => <option key={c} value={c} />)}
-    </datalist>
-  </div>
-</div>
+                  <label style={{
+                    fontSize: '12px', fontWeight: '600', color: '#64748b',
+                    textTransform: 'uppercase', letterSpacing: '0.5px',
+                    marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px'
+                  }}>
+                    <Navigation size={16} style={{ color: '#1e3a8a' }} />
+                    Location Preference *
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <MapPin size={18} style={{
+                      position: 'absolute', left: '14px', top: '50%',
+                      transform: 'translateY(-50%)', color: '#64748b', pointerEvents: 'none', zIndex: 1
+                    }}/>
+                    <select
+                      value={formData.location_preference}
+                      onChange={(e) => setFormData({...formData, location_preference: e.target.value})}
+                      style={{
+                        width: '100%',
+                        padding: '14px 40px 14px 42px',
+                        borderRadius: '12px',
+                        border: '1.5px solid rgba(30, 58, 138, 0.2)',
+                        backgroundColor: 'white',
+                        fontSize: '15px',
+                        outline: 'none',
+                        fontFamily: 'inherit',
+                        cursor: 'pointer',
+                        appearance: 'none',
+                        backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                        backgroundRepeat: 'no-repeat',
+                        backgroundPosition: 'right 12px center',
+                        backgroundSize: '20px',
+                        boxSizing: 'border-box',
+                        color: formData.location_preference ? '#1e3a8a' : '#94a3b8',
+                      }}
+                    >
+                      <option value="">Select preferred location</option>
+                      <option value="Anywhere">Anywhere</option>
+                      {CITIES.map(c => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
 
                 <div style={{
                   background: 'white',
@@ -1836,7 +1906,7 @@ export default function EditProfileContent() {
             </motion.div>
           )}
 
-          {/* SOCIAL SECTION */}
+          {/* SOCIAL SECTION — FIX 1.1 & 1.2 */}
           {activeSection === 'social' && (
             <motion.div
               key="social"
@@ -1848,21 +1918,108 @@ export default function EditProfileContent() {
               <GlassCard>
                 <SectionTitle>Social Profiles</SectionTitle>
                 
-                <InputField
-                  label="LinkedIn Profile"
-                  icon={<Linkedin size={16} style={{ color: '#0077b5' }} />}
-                  value={formData.linkedin_url}
-                  onChange={(e) => setFormData({...formData, linkedin_url: e.target.value})}
-                  placeholder="https://linkedin.com/in/your-name"
-                />
+                {/* FIX 1.1 - LinkedIn with https:// validation */}
+                <div style={{ marginTop: '16px' }}>
+                  <label style={{
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    color: '#64748b',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                    marginBottom: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}>
+                    <Linkedin size={16} style={{ color: '#0077b5' }} />
+                    LinkedIn Profile
+                  </label>
+                  <input
+                    type="url"
+                    value={formData.linkedin_url}
+                    onChange={(e) => {
+                      setFormData({...formData, linkedin_url: e.target.value});
+                      // Clear error as user types
+                      if (linkedinError) setLinkedinError("");
+                    }}
+                    onBlur={() => {
+                      if (formData.linkedin_url && !validateLinkedin(formData.linkedin_url)) {
+                        setLinkedinError("LinkedIn URL must start with https://");
+                      } else {
+                        setLinkedinError("");
+                      }
+                    }}
+                    placeholder="https://linkedin.com/in/your-name"
+                    style={{
+                      width: '100%',
+                      padding: '14px 16px',
+                      borderRadius: '12px',
+                      border: linkedinError
+                        ? '1.5px solid #dc2626'
+                        : '1.5px solid rgba(30, 58, 138, 0.2)',
+                      backgroundColor: 'white',
+                      fontSize: '15px',
+                      outline: 'none',
+                      fontFamily: 'inherit',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                  {linkedinError ? (
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px',
+                      padding: '6px 10px', background: 'rgba(220, 38, 38, 0.08)',
+                      border: '1px solid rgba(220, 38, 38, 0.2)', borderRadius: '8px',
+                      width: 'fit-content'
+                    }}>
+                      <XCircle size={11} style={{ color: '#dc2626' }} />
+                      <span style={{ fontSize: '11px', color: '#991b1b', fontWeight: '500' }}>
+                        {linkedinError}
+                      </span>
+                    </div>
+                  ) : (
+                    <p style={{ fontSize: '11px', color: '#94a3b8', marginTop: '6px' }}>
+                      Must start with https://
+                    </p>
+                  )}
+                </div>
 
-                <InputField
-                  label="Instagram Handle"
-                  icon={<Instagram size={16} style={{ color: '#E4405F' }} />}
-                  value={formData.instagram_handle}
-                  onChange={(e) => setFormData({...formData, instagram_handle: e.target.value})}
-                  placeholder="@yourhandle"
-                />
+                {/* FIX 1.2 - Instagram: enforces @ prefix */}
+                <div style={{ marginTop: '16px' }}>
+                  <label style={{
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    color: '#64748b',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                    marginBottom: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}>
+                    <Instagram size={16} style={{ color: '#E4405F' }} />
+                    Instagram Handle
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.instagram_handle}
+                    onChange={handleInstagramChange}
+                    placeholder="@yourhandle"
+                    style={{
+                      width: '100%',
+                      padding: '14px 16px',
+                      borderRadius: '12px',
+                      border: '1.5px solid rgba(30, 58, 138, 0.2)',
+                      backgroundColor: 'white',
+                      fontSize: '15px',
+                      outline: 'none',
+                      fontFamily: 'inherit',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                  <p style={{ fontSize: '11px', color: '#94a3b8', marginTop: '6px' }}>
+                    Must start with @ · e.g. @yourhandle
+                  </p>
+                </div>
 
                 <p style={{ fontSize: '12px', color: '#94a3b8', marginTop: '12px', textAlign: 'center' }}>
                   Optional • Helps build 'Trust' & 'Authenticity' • Only Visible to Gold & Premium Members
@@ -2212,58 +2369,101 @@ function InputField({
   );
 }
 
+// FIX 4 - Updated PhotoUploadBox with delete button support
 function PhotoUploadBox({
   label,
   subtitle,
   photoUrl,
   uploading,
-  onClick
+  onClick,
+  onDelete,
+  mandatory = true,
 }: {
   label: string;
   subtitle: string;
   photoUrl: string;
   uploading: boolean;
   onClick: () => void;
+  onDelete: () => void;
+  mandatory?: boolean;
 }) {
   return (
-    <div
-      onClick={onClick}
-      style={{
-        background: photoUrl 
-          ? `linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.2)), url(${photoUrl}) center/cover no-repeat` 
-          : 'white',
-        border: photoUrl ? '2px solid #10b981' : '2px dashed rgba(30, 58, 138, 0.2)',
-        borderRadius: '16px',
-        padding: '24px',
-        textAlign: 'center',
-        cursor: uploading ? 'not-allowed' : 'pointer',
-        minHeight: '280px',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        transition: 'all 0.2s'
-      }}
-    >
-      {uploading ? (
-        <Loader2 size={32} style={{ color: '#1e3a8a' }} className="animate-spin" />
-      ) : photoUrl ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'white' }}>
-          <CheckCircle2 size={20} style={{ color: '#10b981' }} />
-          <span style={{ fontWeight: '600', fontSize: '14px', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
-            {label} Uploaded • Click to change
-          </span>
-        </div>
-      ) : (
-        <>
-          <Camera size={32} style={{ color: '#1e3a8a', marginBottom: '12px' }}/>
-          <div style={{ fontWeight: '600', color: '#1e3a8a', fontSize: '15px', marginBottom: '4px' }}>
-            {label}
+    <div style={{ position: 'relative' }}>
+      <div
+        onClick={onClick}
+        style={{
+          background: photoUrl 
+            ? `linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.2)), url(${photoUrl}) center/cover no-repeat` 
+            : 'white',
+          border: photoUrl
+            ? '2px solid #10b981'
+            : mandatory
+              ? '2px dashed rgba(30, 58, 138, 0.35)'
+              : '2px dashed rgba(30, 58, 138, 0.15)',
+          borderRadius: '16px',
+          padding: '24px',
+          textAlign: 'center',
+          cursor: uploading ? 'not-allowed' : 'pointer',
+          minHeight: '280px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          transition: 'all 0.2s'
+        }}
+      >
+        {uploading ? (
+          <Loader2 size={32} style={{ color: '#1e3a8a' }} className="animate-spin" />
+        ) : photoUrl ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'white' }}>
+            <CheckCircle2 size={20} style={{ color: '#10b981' }} />
+            <span style={{ fontWeight: '600', fontSize: '14px', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
+              Tap to replace
+            </span>
           </div>
-          <div style={{ fontSize: '13px', color: '#64748b' }}>
-            {subtitle}
-          </div>
-        </>
+        ) : (
+          <>
+            <Camera size={32} style={{ color: mandatory ? '#1e3a8a' : '#94a3b8', marginBottom: '12px' }}/>
+            <div style={{ fontWeight: '600', color: mandatory ? '#1e3a8a' : '#94a3b8', fontSize: '15px', marginBottom: '4px' }}>
+              {label}
+            </div>
+            <div style={{ fontSize: '13px', color: '#64748b' }}>
+              {subtitle}
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Delete button — only shown when photo is uploaded */}
+      {photoUrl && !uploading && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          title="Remove photo"
+          style={{
+            position: 'absolute',
+            top: '10px',
+            right: '10px',
+            width: '32px',
+            height: '32px',
+            borderRadius: '50%',
+            background: 'rgba(220, 38, 38, 0.85)',
+            border: '2px solid white',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
+            transition: 'background 0.2s',
+            zIndex: 10,
+          }}
+          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(185, 28, 28, 0.95)')}
+          onMouseLeave={e => (e.currentTarget.style.background = 'rgba(220, 38, 38, 0.85)')}
+        >
+          <Trash2 size={14} style={{ color: 'white' }} />
+        </button>
       )}
     </div>
   );
